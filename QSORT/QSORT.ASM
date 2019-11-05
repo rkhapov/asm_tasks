@@ -7,7 +7,7 @@ locals @@
 _start:
     jmp skip_declarations
 
-array dw 9, 6, 10, 1, 4, 2, 9, 1, 14, 0, 0, 5, 9, 10
+array dw 9, 6, 10, 1, 4, 2, 9, 1, 14, 0, 0, 5, 9, 10, -1, 11
 array_length equ ($ - array) / 2
 
 print_num proc
@@ -21,6 +21,15 @@ print_num proc
     xor cx, cx
     mov ax, [bp + 4]
     mov bx, 10
+    cmp ax, 0
+    jge @@dividing
+
+    neg ax
+    push ax
+    mov ax, 0200h
+    mov dx, '-'
+    int 21h
+    pop ax
 
 @@dividing:
     xor dx, dx
