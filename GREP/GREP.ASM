@@ -8,7 +8,10 @@ locals @@
 _start:
     jmp call_main
 
-    usage db "Usage: grep <mask> <patter>", 0dh, 0ah, '$'
+    DTA                db 50 dup(0)
+
+    usage              db "Usage: grep <mask> <patter>", 0dh, 0ah, '$'
+    usage_length       equ $ - usage
 
     arguments_count    db 0
     arguments_table    db 300 dup(0)
@@ -16,7 +19,53 @@ _start:
     next_argument      dw arguments_pointers
     free_table_pointer dw arguments_table
 
+print_num proc
+@@num equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push ax
+    push bx
+    push dx
+    push cx
+
+    mov ax, @@num
+    mov bx, 10
+    xor cx, cx
+
+@@dividing:
+    xor dx, dx
+    div bx
+
+    add dx, '0'
+    push dx
+    inc cx
+
+    test ax, ax
+    jnz @@dividing
+
+    mov ah, 2
+
+@@printing:
+    pop dx
+    int 21h
+
+    loop @@printing
+
+    pop cx
+    pop dx
+    pop bx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+print_num endp
+
 zeromem proc
+@@length equ [bp + 4]
+@@buffer equ [bp + 6]
     push bp
     mov bp, sp
 
@@ -24,8 +73,8 @@ zeromem proc
     push cx
     push ax
 
-    mov cx, [bp + 4]
-    mov di, [bp + 6]
+    mov cx, @@length
+    mov di, @@buffer
     xor ax, ax
 
 @@zeroing:
@@ -87,8 +136,8 @@ put_next_argument proc
 put_next_argument endp
 
 parse_arguments proc
-@@buffer_len equ 30h
-@@buffer equ [bp - @@buffer_len]
+@@buffer_len equ 30h    
+@@buffer     equ [bp - @@buffer_len]
     push bp
     mov bp, sp
     sub sp, @@buffer_len
@@ -117,9 +166,11 @@ parse_arguments proc
 @@state_0:
 	cmp al, ' '
 	je @@arguments_traverse
+    cmp al, 0dh
+    je @@arguments_traverse
 	mov bl, 1
-    lea di, @@buffer
 
+    lea di, @@buffer
     push di
     mov dx, @@buffer_len
     push dx
@@ -150,7 +201,6 @@ parse_arguments proc
 	jmp @@arguments_traverse
 
 @@arguments_traverse_end:
-
     mov arguments_count, bh
 
     pop di
@@ -165,13 +215,247 @@ parse_arguments proc
     ret
 parse_arguments endp
 
+shift_left proc
+@@buffer equ [bp + 6]
+@@length equ [bp + 4]    
+
+    push bp
+    mov bp, sp
+
+    push di
+    push si
+    push cx
+
+    mov di, @@buffer
+    lea si, [di + 1]
+    mov cx, @@length
+    dec cx
+
+    rep movsb
+
+    pop cx
+    pop si
+    pop di
+
+    mov sp, bp
+    pop bp
+    ret
+shift_left endp
+
+strlen proc
+@@string equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push si
+    mov si, @@string
+
+    xor ax, ax
+
+@@l1:
+    lodsb
+    test al, al
+    jz @@l2
+    inc ah
+    jmp @@l1
+
+@@l2:
+    pop si
+
+    mov al, ah
+    xor ah, ah
+
+    mov sp, bp
+    pop bp
+    ret
+strlen endp
+
+memcmp proc
+@@n    equ [bp + 4]
+@@str2 equ [bp + 6]
+@@str1 equ [bp + 8]
+
+    push bp
+    mov bp, sp
+
+    push si
+    push di
+    push cx
+
+    mov si, @@str1
+    mov di, @@str2    
+    mov cx, @@n
+
+    xor ax, ax
+
+@@l1:
+    cmpsb
+
+    je @@eq
+    mov ax, 1
+@@eq:
+    loop @@l1
+
+    pop cx
+    pop di
+    pop si
+
+    mov sp, bp
+    pop bp
+    ret
+memcmp endp
+
+get_pattern_count_at_file proc
+@@filename       equ [bp + 6]
+@@pattern        equ [bp + 4]
+@@handle         equ [bp - 2]
+@@pattern_length equ [bp - 4]
+@@count          equ [bp - 6]
+@@buffer_len     equ 100
+@@buffer         equ [bp - @@buffer_len - 6]
+
+    push bp
+    mov bp, sp
+    sub sp, 6 + @@buffer_len
+
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+ 
+    mov di, @@pattern
+    push di
+    call strlen
+    add sp, 2
+
+    mov @@pattern_length, ax
+
+    mov word ptr @@count, 0
+
+    mov ah, 3dh
+    mov al, 0
+    mov dx, @@filename
+    int 21h
+
+    jc @@end
+
+    mov @@handle, ax
+    mov bx, ax
+
+    lea dx, @@buffer
+    mov ah, 3fh
+    mov cx, @@pattern_length
+    int 21h
+
+    cmp ax, @@pattern_length
+    jl @@end
+
+@@searching:
+    mov ax, @@pattern
+    push ax
+    lea ax, @@buffer
+    push ax
+    mov ax, @@pattern_length
+    push ax
+    call memcmp
+    add sp, 6
+
+    test ax, ax
+    jnz @@not_found
+
+    inc word ptr @@count
+
+@@not_found:
+    lea dx, @@buffer
+    mov cx, @@pattern_length
+    push dx
+    push cx
+    call shift_left
+    add sp, 4
+
+    dec cx
+    add dx, cx
+    mov ah, 3fh
+    mov cx, 1
+    int 21h
+
+    test ax, ax
+    jz @@searching_end
+
+    jmp @@searching
+
+@@searching_end:
+    mov bx, @@handle
+    mov ah, 3eh
+    int 21h
+
+@@end:
+    mov ax, @@count
+
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+
+    mov sp, bp
+    pop bp
+    ret
+get_pattern_count_at_file endp
+
+print_result proc
+@@filename equ [bp + 6]
+@@count    equ [bp + 4]   
+    
+    push bp
+    mov bp, sp
+
+    push ax
+    push dx
+    push si
+
+    mov ah, 2
+    mov si, @@filename
+
+@@name_printing:
+    lodsb
+    mov dl, al
+    int 21h
+
+    test al, al
+    jnz @@name_printing
+
+    mov dl, ' '
+    int 21h
+
+    push @@count
+    call print_num
+    add sp, 2
+
+    mov dl, 0dh
+    int 21h
+
+    mov dl, 0ah
+    int 21h
+
+    pop si
+    pop dx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+print_result endp
+
 main proc
 @@argc equ [bp - 2]
 @@argv equ [bp - 4]
 
     push bp
     mov bp, sp
-    sub sp, 4
+    sub sp, 6
 
     mov ax, [bp + 4]
     mov @@argv, ax
@@ -184,12 +468,44 @@ main proc
     mov ah, 9
     lea dx, usage
     int 21h
-
+    
     mov ax, 1
+
     jmp @@to_return
 
 @@valid:
+    mov ah, 1ah
+    lea dx, DTA
+    int 21h
 
+    xor cx, cx
+    mov ah, 4eh
+    mov bx, @@argv
+    mov dx, [bx]
+    int 21h
+
+    mov bx, @@argv
+    mov dx, 2[bx]
+    lea bx, 1eh[DTA]
+
+@@files_enumerating:
+    jc @@enumeration_end
+
+    push bx
+    push dx
+    call get_pattern_count_at_file
+    add sp, 4
+
+    push bx
+    push ax
+    call print_result
+    add sp, 4
+
+    mov ah, 4fh
+    int 21h
+    jmp @@files_enumerating
+
+@@enumeration_end:
     xor ax, ax
 
 @@to_return:
