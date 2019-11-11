@@ -10,9 +10,7 @@ _start:
 
     DTA                db 50 dup(0)
 
-    outfile            db "out.txt", 0
-
-    usage              db "Usage: grep <mask> <patter> <1/2>", 0dh, 0ah, '$'
+    usage              db "Usage: grep <mask> <pattern> <?outfile>", 0dh, 0ah, '$'
     usage_length       equ $ - usage
 
     arguments_count    db 0
@@ -512,6 +510,8 @@ output_result_to_screen proc
 output_result_to_screen endp
 
 output_result_to_file proc
+@@filename equ [bp + 4]
+
     push bp
     mov bp, sp
 
@@ -522,7 +522,7 @@ output_result_to_file proc
 
     mov ah, 3ch
     mov cx, 2
-    lea dx, outfile
+    mov dx, @@filename
     int 21h
 
     jc @@to_end
@@ -608,10 +608,7 @@ main proc
     jmp @@files_enumerating
 
 @@enumeration_end:
-    mov bx, @@argv
-    mov bx, 4[bx]
-
-    cmp byte ptr [bx], '1'
+    cmp byte ptr @@argc, 3
     je @@to_file
 
     call output_result_to_screen
@@ -619,7 +616,11 @@ main proc
     jmp @@return_zero
 
 @@to_file:
+    mov bx, @@argv
+    mov bx, 4[bx]
+    push bx
     call output_result_to_file
+    add sp, 2
 
 @@return_zero:
     xor ax, ax
