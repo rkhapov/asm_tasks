@@ -10,14 +10,49 @@ _start:
 
     DTA                db 50 dup(0)
 
-    usage              db "Usage: grep <mask> <patter>", 0dh, 0ah, '$'
+    outfile            db "out.txt", 0
+
+    usage              db "Usage: grep <mask> <patter> <1/2>", 0dh, 0ah, '$'
     usage_length       equ $ - usage
 
     arguments_count    db 0
-    arguments_table    db 300 dup(0)
+    arguments_table    db 100 dup(0)
     arguments_pointers dw 30 dup(0)
     next_argument      dw arguments_pointers
     free_table_pointer dw arguments_table
+    result_string      db 100 dup('?')
+    result_pointer     dw result_string
+
+put_smb proc
+@@char equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push bx
+    push ax
+
+    mov ax, @@char
+
+    test al, al
+    jz @@to_end
+
+    mov bx, result_pointer
+    mov byte ptr [bx], al
+    inc bx
+
+    mov result_pointer, bx
+
+@@to_end:
+
+    pop ax
+    pop bx
+
+    mov sp, bp
+    pop bp
+
+    ret
+put_smb endp
 
 print_num proc
 @@num equ [bp + 4]
@@ -45,11 +80,9 @@ print_num proc
     test ax, ax
     jnz @@dividing
 
-    mov ah, 2
-
 @@printing:
-    pop dx
-    int 21h
+    call put_smb
+    add sp, 2
 
     loop @@printing
 
@@ -413,41 +446,107 @@ print_result proc
     mov bp, sp
 
     push ax
-    push dx
     push si
 
-    mov ah, 2
     mov si, @@filename
+    xor ax, ax
 
 @@name_printing:
     lodsb
-    mov dl, al
-    int 21h
+    push ax
+    call put_smb
+    add sp, 2
 
     test al, al
     jnz @@name_printing
 
-    mov dl, ' '
-    int 21h
+    mov ax, ' '
+    push ax
+    call put_smb
+    add sp, 2
 
     push @@count
     call print_num
     add sp, 2
 
-    mov dl, 0dh
-    int 21h
-
-    mov dl, 0ah
-    int 21h
+    mov ax, 0dh
+    push ax
+    call put_smb
+    add sp, 2
+    
+    mov ax, 0ah
+    push ax
+    call put_smb
+    add sp, 2
 
     pop si
-    pop dx
     pop ax
 
     mov sp, bp
     pop bp
     ret
 print_result endp
+
+output_result_to_screen proc
+    push bp
+    mov bp, sp
+
+    push ax
+    push dx
+
+    mov ax, '$'
+    push ax
+    call put_smb
+    add sp, 2
+
+    mov ah, 9
+    lea dx, result_string
+    int 21h
+
+    pop dx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+output_result_to_screen endp
+
+output_result_to_file proc
+    push bp
+    mov bp, sp
+
+    push ax
+    push bx
+    push cx
+    push dx
+
+    mov ah, 3ch
+    mov cx, 2
+    lea dx, outfile
+    int 21h
+
+    jc @@to_end
+
+    mov bx, ax
+    mov cx, result_pointer
+    sub cx, offset result_string
+    mov ah, 40h
+    lea dx, result_string
+    int 21h
+
+    mov ah, 3eh
+    int 21h
+
+@@to_end:
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+output_result_to_file endp
 
 main proc
 @@argc equ [bp - 2]
@@ -463,6 +562,9 @@ main proc
     mov @@argc, ax
 
     cmp byte ptr @@argc, 2
+    je @@valid
+
+    cmp byte ptr @@argc, 3
     je @@valid
 
     mov ah, 9
@@ -506,6 +608,20 @@ main proc
     jmp @@files_enumerating
 
 @@enumeration_end:
+    mov bx, @@argv
+    mov bx, 4[bx]
+
+    cmp byte ptr [bx], '1'
+    je @@to_file
+
+    call output_result_to_screen
+
+    jmp @@return_zero
+
+@@to_file:
+    call output_result_to_file
+
+@@return_zero:
     xor ax, ax
 
 @@to_return:
