@@ -8,764 +8,595 @@ locals @@
 _start:
     jmp call_main
 
-    tab_size equ 2
+    files_mask         db '\', '*.*', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    separator          db '\', 0, 0
+    max_depth          dw 100
+    dirs_mask          db '\', '*', 0, 0, 0
+    empty_name         db 0, 0, 0, 0
+
+    tab_size equ 1
     tab_char equ ' '
     line equ 179
+    horizontal_line equ 196
     close_line equ 192
     branch equ 195
-    horizontal_line equ 196
 
     DTA                db 50 dup(0)
 
     usage              db "Usage: tree <path> -d depth -f search_suffix", 0dh, 0ah, '$'
     usage_length       equ $ - usage
 
-    arguments_count    db 0
-    arguments_table    db 100 dup(0)
-    arguments_pointers dw 30 dup(0)
-    next_argument      dw arguments_pointers
-    free_table_pointer dw arguments_table
-    result_string      db 100 dup('?')
-    result_pointer     dw result_string
+    include STRINGS.ASM
+    include ARGPARSE.ASM
+    include NODES.ASM
+    include PRINTERS.ASM
 
-    files_mask         db '/', '*', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    db 50 (0)
-    max_depth          dw 100
+    tree_root dw ?
 
-    get_arg_value_buffer db 100 dup(0)
 
-put_smb proc
-@@char equ [bp + 4]
+create_nodes_return_buffer db 50 dup(0)
+create_nodes_buffer db 50 dup(0)
 
-    push bp
-    mov bp, sp
-
-    push bx
-    push ax
-
-    mov ax, @@char
-
-    test al, al
-    jz @@to_end
-
-    mov bx, result_pointer
-    mov byte ptr [bx], al
-    inc bx
-
-    mov result_pointer, bx
-
-@@to_end:
-
-    pop ax
-    pop bx
-
-    mov sp, bp
-    pop bp
-
-    ret
-put_smb endp
-
-print_num proc
-@@num equ [bp + 4]
+append_at_return_buffer proc
+@@arg_node_ptr equ [bp + 4]
 
     push bp
     mov bp, sp
 
     push ax
-    push bx
-    push dx
-    push cx
+    push si
 
-    mov ax, @@num
-    mov bx, 10
-    xor cx, cx
-
-@@dividing:
-    xor dx, dx
-    div bx
-
-    add dx, '0'
-    push dx
-    inc cx
+    lea si, create_nodes_return_buffer
+    
+@@l:
+    mov ax, word ptr [si]
 
     test ax, ax
-    jnz @@dividing
+    jz @@l_end
+    add si, 2
+    jmp @@l
 
-@@printing:
-    call put_smb
-    add sp, 2
+@@l_end:
+    mov ax, @@arg_node_ptr
+    mov [si], ax
 
-    loop @@printing
-
-    pop cx
-    pop dx
-    pop bx
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-print_num endp
-
-zeromem proc
-@@length equ [bp + 4]
-@@buffer equ [bp + 6]
-    push bp
-    mov bp, sp
-
-    push di
-    push cx
-    push ax
-
-    mov cx, @@length
-    mov di, @@buffer
-    xor ax, ax
-
-@@zeroing:
-    stosb
-
-    dec cx
-    jnz @@zeroing
-
-    pop ax
-    pop cx
-    pop di
-
-    mov sp, bp
-    pop bp
-    ret
-zeromem endp
-
-put_next_argument proc
-    push bp
-    mov bp, sp
-
-    push dx
-    push ax
-    push bx
-    push si
-    push di
-
-    mov ax, free_table_pointer
-    mov bx, next_argument
-    mov [bx], ax
-    
-    add word ptr [next_argument], 2    
-
-    mov si, [bp + 4]
-    mov di, free_table_pointer
-
-    xor dx, dx
-
-@@copying:
-    lodsb
-    stosb
-
-    inc dx
-
-    test al, al
-    jnz @@copying
-
-    add word ptr [free_table_pointer], dx
-
-    pop di
     pop si
-    pop bx
     pop ax
-    pop dx
 
     mov sp, bp
     pop bp
     ret
-put_next_argument endp
+append_at_return_buffer endp
 
-parse_arguments proc
-@@buffer_len equ 30h    
-@@buffer     equ [bp - @@buffer_len]
+create_nodes_for_path proc
+@@arg_path equ [bp + 4]
+
     push bp
     mov bp, sp
-    sub sp, @@buffer_len
 
-    push ax
     push bx
     push cx
     push dx
-    push si
-    push di
 
-    xor cx, cx
-	mov cl, byte ptr ds:[80h]
-	add cx, 2
-	mov si, 81h
-
-	xor bx, bx
-
-@@arguments_traverse:
-	dec cx
-	jz @@arguments_traverse_end
-	lodsb
-	test bl, bl
-	jnz @@state_1
-
-@@state_0:
-	cmp al, ' '
-	je @@arguments_traverse
-    cmp al, 0dh
-    je @@arguments_traverse
-	mov bl, 1
-
-    lea di, @@buffer
-    push di
-    mov dx, @@buffer_len
-    push dx
+    lea ax, create_nodes_return_buffer
+    push ax
+    mov ax, 50
+    push ax
     call zeromem
     add sp, 4
 
-    stosb
-	jmp @@arguments_traverse
-	
-@@state_1:
-	cmp al, ' '
-	je @@space
-	cmp al, 0dh
-	je @@space
-	
-@@not_@@space:
-    stosb
-	jmp @@arguments_traverse
-
-@@space:
-    lea di, @@buffer
-    push di
-    call put_next_argument
-    add sp, 2
-
-	inc bh
-    xor bl, bl
-	jmp @@arguments_traverse
-
-@@arguments_traverse_end:
-    mov arguments_count, bh
-
-    pop di
-    pop si
-    pop dx
-    pop cx
-    pop bx
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-parse_arguments endp
-
-print_tab proc
+    lea ax, create_nodes_buffer
     push ax
-    push dx
-    push cx
-
-    xor cx, cx
-    mov ah, 02h
-
-@@_1:
-    mov dl, tab_char
-    int 21h
-
-    inc cx
-
-    cmp cx, tab_size
-    jb @@_1
-
-    pop cx
-    pop dx
-    pop ax
-
-    ret
-print_tab endp
-
-
-print_string proc
-@@line equ [bp + 4]
-
-    push bp
-    mov bp, sp
-
+    mov ax, 50
     push ax
-    push dx
-    push si
+    call zeromem
+    add sp, 4
 
-    mov si, @@line
-
-@@_1:
-    lodsb
-
-    test al, al
-    jz @@_2
-
-    mov ah, 02h
-    mov dl, al
-    int 21h
-
-    jmp @@_1
-
-@@_2:
-
-    mov dl, 0dh
-    int 21h
-
-    mov dl, 0ah
-    int 21h
-
-    pop si
-    pop dx
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-print_string endp
-
-
-print_name proc
-@@name equ [bp + 8]
-@@depth equ [bp + 6]
-@@actual_depth equ [bp + 4]
-
-@@i equ [bp - 2]
-
-    push bp
-    mov bp, sp
-    sub sp, 2
-
+    mov ax, @@arg_path
     push ax
-    push bx
-    push cx
-    push dx
-
-    mov ax, @@depth
-    mov bx, max_depth
-
-    cmp ax, bx
-    jnb @@to_return
-
-    mov word ptr @@i, 0
-
-    mov cx, word ptr @@depth
-    sub cx, word ptr @@actual_depth
-
-@@print_tabs:
-    mov ax, word ptr @@i
-    cmp ax, cx
-    jae @@print_tabs_end
-
-    mov ah, 02h
-    mov dl, tab_char
-    int 21h
-
-    call print_tab
-
-    inc word ptr @@i
-    jmp @@print_tabs
-
-@@print_tabs_end:
-    mov word ptr @@i, 0
-
-    mov cx, word ptr @@actual_depth
-    dec cx
-
-@@print_separators:
-    mov ax, word ptr @@i
-    cmp ax, cx
-    jae @@print_separators_end
-
-    mov ah, 02h
-    mov dl, line
-    int 21h
-
-    call print_tab
-
-    inc word ptr @@i
-    jmp @@print_separators
-
-@@print_separators_end:
-    mov ah, 02h
-    mov dl, branch
-    int 21h
-
-    mov ah, 02h
-    mov dl, horizontal_line
-    int 21h
-
-    mov dl, tab_char
-    int 21h
-
-    mov ax, @@name
-    push ax
-    call print_string
-    add sp, 2
-
-@@to_return:
-    pop dx
-    pop cx
-    pop bx
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-print_name endp
-
-
-print_files proc
-@@path         equ [bp + 8]
-@@depth        equ [bp + 6]
-@@actual_depth equ [bp + 4]
-
-@@buffer_size equ 100
-@@buffer      equ [bp - @@buffer_size]
-
-    push bp
-    mov bp, sp
-
-    push ax
-
-    lea ax, @@path
-    push ax
-    lea ax, @@buffer
+    lea ax, create_nodes_buffer
     push ax
     call memcpy
     add sp, 4
 
-    lea ax, @@buffer
+    lea ax, dirs_mask
     push ax
+    lea ax, create_nodes_buffer
+    push ax
+    call strconcat
+    add sp, 4
+
+    mov cx, 10h ; files and directories
+    mov ah, 4eh
+    lea dx, create_nodes_buffer
+    int 21h
+
+@@dirs_enumeration:
+    jc @@dirs_enumeration_end
+
+    mov al, byte ptr 1eh[DTA]
+    cmp al, '.'
+    je @@dirs_enumeration_continue
+
+    lea ax, create_nodes_buffer
+    push ax
+    mov ax, 50
+    push ax
+    call zeromem
+    add sp, 4
+
+    mov ax, @@arg_path
+    push ax
+    lea ax, create_nodes_buffer
+    push ax
+    call memcpy
+    add sp, 4
+    
+    lea ax, separator
+    push ax
+    lea ax, create_nodes_buffer
+    push ax
+    call strconcat
+    add sp, 4
+
+    lea ax, 1eh[DTA]
+    push ax
+    lea ax, create_nodes_buffer
+    push ax
+    call strconcat
+    add sp, 4
+
+    lea ax, 1eh[DTA]
+    push ax
+    lea ax, create_nodes_buffer
+    push ax
+    mov ax, 1
+    push ax
+    call create_node
+    add sp, 6
+
+    push ax
+    call append_at_return_buffer
+    add sp, 2
+
+@@dirs_enumeration_continue:
+
+    mov ah, 4fh
+    int 21h
+    jmp @@dirs_enumeration
+
+@@dirs_enumeration_end:
+
+    lea ax, create_nodes_buffer
+    push ax
+    mov ax, 50
+    push ax
+    call zeromem
+    add sp, 4
+
+    mov ax, @@arg_path
+    push ax
+    lea ax, create_nodes_buffer
+    push ax
+    call memcpy
+    add sp, 4
+
     lea ax, files_mask
+    push ax
+    lea ax, create_nodes_buffer
     push ax
     call strconcat
     add sp, 4
 
     xor cx, cx
     mov ah, 4eh
-    lea dx, @@buffer
+    lea dx, create_nodes_buffer
     int 21h
 
-@@enumerate_files:
-    jc @@enumerating_end
+@@files_enumeration:
+    jc @@files_enumeration_end
 
-    lea ax, 1eh[DTA]
+    lea ax, create_nodes_buffer
     push ax
-    mov ax, @@depth
+    mov ax, 50
     push ax
-    mov ax, @@actual_depth
-    call print_name
-    add sp, 6
+    call zeromem
+    add sp, 4
 
-    mov ah, 4fh
-    int 21h
-    jmp @@enumerate_files
-
-@@enumerating_end:
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-print_files endp
-
-
-print_directories proc
-@@path         equ [bp + 8]
-@@depth        equ [bp + 6]
-@@actual_depth equ [bp + 4]
-
-@@buffer_size equ 100
-@@buffer      equ [bp - @@buffer_size]
-
-    ret
-print_directories endp
-
-
-print_dir proc
-@@path         equ [bp + 8]
-@@depth        equ [bp + 6]
-@@actual_depth equ [bp + 4]
-
-@@buffer_size equ 100
-@@buffer      equ [bp - @@buffer_size]
-
-    push bp
-    mov bp, sp
-    add sp, @@buffer_size
-
+    mov ax, @@arg_path
     push ax
-    
-    mov ax, @@path
-    push ax
-    mov ax, @@depth
-    push ax
-    mov ax, @@actual_depth
-    push ax
-    call print_files
-    add sp, 6
-
-    mov ax, @@path
-    push ax
-    mov ax, @@depth
-    push ax
-    mov ax, @@actual_depth
-    push ax
-    call print_directories
-    add sp, 6
-
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-print_dir endp
-
-
-strtonum proc
-@@string equ [bp + 4]
-
-    push bp
-    mov bp, sp
-
-    push bx
-    push cx
-    push dx
-    push si
-
-    xor ax, ax
-    xor cx, cx
-    xor bx, bx
-    mov si, @@string
-
-@@1:
-    lodsb
-
-    cmp al, '0'
-    jl @@2
-
-    cmp al, '9'
-    jg @@2
-
-    sub al, '0'
-
-    xchg bx, ax
-    mov dx, 10
-    mul dx
-
-    add ax, bx
-
-    xchg bx, ax
-
-    jmp @@1
-
-@@2:
-    mov ax, bx
-
-    pop si
-    pop dx
-    pop cx
-    pop bx
-
-    mov sp, bp
-    pop bp
-    ret
-strtonum endp
-
-
-memcpy proc
-@@src equ [bp + 6]
-@@dst equ [bp + 4]
-
-    push bp
-    mov bp, sp
-
-    push ax
-    push si
-    push di
-
-    mov si, @@src
-    mov di, @@dst
-
-@@1:
-    lodsb
-    stosb
-
-    test al, al
-    jnz @@1
-
-    pop di
-    pop si
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-memcpy endp
-
-
-get_arg_value proc
-@@argc      equ [bp + 8]
-@@argv      equ [bp + 6]
-@@argletter equ [bp + 4]
-
-@@i         equ [bp - 2]
-
-    push bp
-    mov bp, sp
-    sub sp, 2
-
-    push bx
-    push cx
-    push dx
-
-    mov word ptr @@i, 0
-    mov cx, word ptr @@argc
-
-@@1:
-    mov ax, word ptr @@i
-    cmp ax, cx
-    jnb @@3
-
-    mov bx, @@argv
-    add bx, ax
-    mov bx, [bx]
-
-    mov al, byte ptr [bx]
-    cmp al, '-'
-    jne @@continue
-
-    mov al, byte ptr [bx + 1]
-    mov cx, @@argletter
-    cmp al, cl
-    jne @@continue
-
-    mov bx, @@argv
-    mov ax, word ptr @@i
-    inc ax
-    add bx, ax
-    mov bx, [bx]
-    push bx
-    lea ax, get_arg_value_buffer
+    lea ax, create_nodes_buffer
     push ax
     call memcpy
     add sp, 4
-
-    lea ax, get_arg_value_buffer
-
-    jmp @@2
-
-@@continue:
-    inc word ptr @@i
-    jmp @@1
-@@3:
-    xor ax, ax
-
-@@2:
-    pop dx
-    pop cx
-    pop bx
-
-    mov sp, bp
-    pop bp
-    ret
-get_arg_value endp
-
-
-strconcat proc
-@@src equ [bp + 6]
-@@dst equ [bp + 4]
-
-    push bp
-    mov bp, sp
-
+    
+    lea ax, separator
     push ax
-    push si
-    push di
-
-    mov si, @@dst
-
-@@to_zero:
-    lodsb
-
-    test al, al
-    jnz @@to_zero
-
-    mov di, si
-    mov si, @@src
-
-@@1:
-    lodsb
-    stosb
-
-    test al, al
-    jnz @@1
-
-    pop di
-    pop si
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-strconcat endp
-
-
-configure_parameters proc
-@@argc equ [bp + 6]
-@@argv equ [bp + 4]
-
-    push bp
-    mov bp, sp
-
-    push ax
-
-    mov ax, @@argc
-    push ax
-    mov ax, @@argv
-    push ax
-    mov ax, 'f'
-    push ax
-    call get_arg_value
-    add sp, 6
-
-    test ax, ax
-    jz @@no_suffix
-
-    push ax
-    lea ax, files_mask
+    lea ax, create_nodes_buffer
     push ax
     call strconcat
     add sp, 4
 
-@@no_suffix:
-    mov ax, @@argc
+    lea ax, 1eh[DTA]
     push ax
-    mov ax, @@argv
+    lea ax, create_nodes_buffer
     push ax
-    mov ax, 'd'
+    call strconcat
+    add sp, 4
+
+    lea ax, 1eh[DTA]
     push ax
-    call get_arg_value
+    lea ax, create_nodes_buffer
+    push ax
+    xor ax, ax
+    push ax
+    call create_node
     add sp, 6
 
-    test ax, ax
-    jz @@no_depth
-
     push ax
-    call strtonum
+    call append_at_return_buffer
     add sp, 2
 
-    mov max_depth, ax
+@@files_enumeration_continue:
 
-@@no_depth:
+    mov ah, 4fh
+    int 21h
+    jmp @@files_enumeration
+
+@@files_enumeration_end:
+
+    pop dx
+    pop cx
+    pop bx
+
+    lea ax, create_nodes_return_buffer
+
+    mov sp, bp
+    pop bp
+    ret
+create_nodes_for_path endp
+
+
+append_empty_children proc
+@@arg_node_ptr equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push ax
+    push cx
+    push bx
+    push si
+
+    mov bx, @@arg_node_ptr
+    lea ax, node_path_field[bx]
+    push ax
+    call create_nodes_for_path
+    add sp, 2
+
+    mov bx, ax
+
+@@adding:
+    mov ax, [bx]
+
+    test ax, ax
+    jz @@adding_end
+
+    mov si, ax
+    mov ax, node_index_field[si]
+    xor ah, ah
+
+    mov cx, @@arg_node_ptr
+    push cx
+    push ax
+    call append_child
+    add sp, 2
+
+    add bx, 2
+    jmp @@adding
+
+@@adding_end:
+
+    pop si
+    pop bx
+    pop cx
     pop ax
 
     mov sp, bp
     pop bp
     ret
-configure_parameters endp
+append_empty_children endp
+
+
+fill_node proc
+@@arg_node_ptr equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+
+    mov bx, @@arg_node_ptr
+    mov al, node_isdirectory_field[bx]
+
+    test al, al
+    jz @@to_return
+
+
+    mov bx, @@arg_node_ptr
+    push bx
+    call append_empty_children
+    add sp, 2
+
+    mov bx, @@arg_node_ptr
+    lea si, node_children_field[bx]
+
+@@enumerating:
+    lodsb
+
+    test al, al
+    jz @@enumerating_end
+
+    xor ah, ah
+    push ax
+    call get_node_by_index
+    add sp, 2
+
+    push ax
+    call fill_node
+    add sp, 2
+
+    jmp @@enumerating
+
+@@enumerating_end:
+
+@@to_return:
+
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+fill_node endp
+
+
+set_depths proc
+@@arg_node_ptr equ [bp + 6]
+@@depth        equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push ax
+    push bx
+    push cx
+    push si
+
+    mov bx, @@arg_node_ptr
+    mov ax, @@depth
+    mov node_depth_field[bx], al
+
+    lea si, node_children_field[bx]
+
+@@enumerating:
+    lodsb
+
+    test al, al
+    jz @@enumerating_end
+
+    xor ah, ah
+    push ax
+    call get_node_by_index
+    add sp, 2
+
+    push ax
+    mov cx, @@depth
+    inc cx
+    push cx
+    call set_depths
+    add sp, 4
+
+    jmp @@enumerating
+
+@@enumerating_end:
+
+    pop si
+    pop cx
+    pop bx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+set_depths endp
+
+
+increase_actual_at_right proc
+@@arg_node_ptr equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push ax
+    push bx
+    push cx
+    push si
+
+    mov bx, @@arg_node_ptr
+
+    inc byte ptr node_actual_depth_field[bx]
+
+@@not_decreasing:
+
+    lea si, node_children_field[bx]
+
+    cmp byte ptr [si], 0
+    je @@to_return
+
+@@enumerating:
+    lodsb
+
+    test al, al
+    jnz @@enumerating
+
+    mov al, -2[si]
+
+    xor ah, ah
+    push ax
+    call get_node_by_index
+    add sp, 2
+
+    push ax
+    call increase_actual_at_right
+    add sp, 2
+
+    push ax
+    call increase_actual_at_right
+    add sp, 2
+
+@@to_return:
+    pop si
+    pop cx
+    pop bx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+increase_actual_at_right endp
+
+
+print_children proc
+@@arg_node_ptr equ [bp + 8]
+@@depth        equ [bp + 6]
+@@actual_depth equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+
+    mov bx, @@arg_node_ptr
+
+    lea si, node_children_field[bx]
+
+@@enumeration:
+    lodsb
+
+    test al, al
+    jz @@to_return
+
+    xor ah, ah
+    push ax
+    call get_node_by_index
+    add sp, 2
+
+    mov bx, ax
+    cmp byte ptr node_isdirectory_field[bx], 1
+    jne @@not_directory
+
+    cmp byte ptr node_children_field[bx], 0
+    je @@enumeration
+
+@@not_directory:
+
+    mov cl, node_actual_depth_field[bx]
+    mov dl, node_depth_field[bx]
+
+    xor dh, dh
+    xor ch, ch
+
+    xor bx, bx
+    cmp byte ptr [si], 0
+    jnz @@not_last
+
+    mov bx, 1
+
+@@not_last:
+
+    push ax
+    push dx
+    push cx
+    push bx
+    call print_node
+    add sp, 8
+
+    jmp @@enumeration
+
+@@to_return:
+
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+print_children endp
+
+print_node proc
+@@arg_node_ptr equ [bp + 10]
+@@depth        equ [bp + 8]
+@@actual_depth equ [bp + 6]
+@@is_last      equ [bp + 4]
+
+    push bp
+    mov bp, sp
+
+    push ax
+    push bx
+
+    mov ax, @@depth
+    cmp ax, max_depth
+    jae @@to_return
+
+
+    mov bx, @@arg_node_ptr
+    lea ax, node_name_field[bx]
+    push ax
+    mov ax, @@depth
+    push ax
+    mov ax, @@actual_depth
+    push ax
+    mov ax, @@is_last
+    push ax
+    call print_name
+    add sp, 8
+
+    mov ax, @@arg_node_ptr
+    push ax
+    mov ax, @@depth
+    push ax
+    mov ax, @@actual_depth
+    push ax
+    call print_children
+    add sp, 6
+
+@@to_return:
+
+    pop bx
+    pop ax
+
+    mov sp, bp
+    pop bp
+    ret
+print_node endp
 
 
 main proc
@@ -795,13 +626,41 @@ main proc
     call configure_parameters
     add sp, 4
 
+    lea ax, empty_name
+    push ax
     mov bx, @@argv
-    mov bx, [bx]
-    push bx
-    mov ax, 0
+    mov ax, [bx]
+    push ax
+    mov ax, 1
+    push ax
+    call create_node
+    add sp, 6
+
+    mov word ptr [tree_root], ax
+    
+    mov ax, word ptr [tree_root]
+    push ax
+    call fill_node
+    add sp, 2
+
+    mov ax, word ptr [tree_root]
+    push ax
+    mov ax, -1
+    push ax
+    call set_depths
+    add sp, 4
+
+    mov ax, word ptr [tree_root]
+    push ax
+    call increase_actual_at_right
+    add sp, 2
+
+    mov ax, word ptr [tree_root]
+    push ax
+    xor ax, ax
     push ax
     push ax
-    call print_dir
+    call print_children
     add sp, 6
 
     jmp @@to_return
