@@ -2,14 +2,14 @@ __TREE_START_MSG__ db "!!!TREE STARTED HERE!!!"
 
 tree db 4096 dup(0)
 
-node_size equ 1 + 1 + 30 + 30 + 30 + 1 + 1
-node_index_field equ 0
-node_isdirectory_field equ 1
-node_name_field equ 2
-node_path_field equ 32
-node_children_field equ 62
-node_depth_field equ 92
-node_actual_depth_field equ 93
+node_size equ 1 + 1 + 13 + 30 + 10 + 1 + 1
+node_index_field        equ 0
+node_isdirectory_field  equ 1
+node_name_field         equ 2
+node_path_field         equ 15
+node_children_field     equ 45
+node_depth_field        equ 55
+node_actual_depth_field equ 56
 
 free_node_pointer dw tree
 free_node_index db 1

@@ -133,6 +133,9 @@ print_name proc
     mov ah, 02h
     int 21h
 
+    mov dl, horizontal_line
+    int 21h
+
     mov dl, tab_char
     mov ah, 02h
     int 21h
