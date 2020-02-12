@@ -21,22 +21,85 @@ _start:
 ;
 ; Multiplex handler for defence against deploying copies of general resident in memory
 ;
-multiplex_hundler proc
-    pushf
-    
+multiplex_hundler proc    
     cmp     ax, multiplex_function_number
-    jne     @@call_default_handler
+    jne     cs:@@call_default_handler
 
     mov     al, multiplex_return_code
 
-    popf
     iret
 
 @@call_default_handler:
-    popf
     jmp     cs:default_multiplex_handler    
 multiplex_hundler endp
 
+;
+; Reverse $-ended string
+;
+reverse_string proc
+@@string_ptr equ [bp + 4]
+
+    push    bp
+    mov     bp, sp
+
+    push    ax
+    push    bx
+    push    si
+    push    di
+
+    mov     di, @@string_ptr
+    mov     si, di
+    cld
+
+@@shift_si_to_end:
+    lodsb
+    cmp     al, '$'
+    jne     cs:@@shift_si_to_end
+
+    ; si points to after $ symbol, so it is necessary to shift it to left twice
+    sub     si, 2
+
+@@reversing:
+    cmp     si, di
+    jb      cs:@@reverse_end
+
+    mov     al, [si]
+    mov     bl, [di]
+    mov     [si], bl
+    mov     [di], al
+
+    dec     si
+    inc     di
+
+    jmp     cs:@@reversing
+
+@@reverse_end:
+    pop     di
+    pop     si
+    pop     bx
+    pop     ax
+
+    mov     sp, bp
+    pop     bp
+    ret
+reverse_string endp
+
+;
+; New Handler for 21h interruption
+; Checks if called dos function is string printing and reverse the string if it is
+;
+dos_functions_handler proc
+
+    cmp     ah, 09h
+    jne     cs:@@call_dos_default_handler
+
+    push    dx
+    call    cs:reverse_string
+    add     sp, 2
+
+@@call_dos_default_handler:
+    jmp     cs:default_handler
+dos_functions_handler endp
 
 resident_end:
 
@@ -45,7 +108,6 @@ resident_end:
 ; if yes - returns 1
 ; otherwise sets the multiplex interrupt hundler and returns 0
 ;
-
 install_multiplex_handler proc
     push    bp
     mov     bp, sp
@@ -58,7 +120,7 @@ install_multiplex_handler proc
     int     2Fh
 
     cmp     al, multiplex_return_code
-    je      @@already_runned
+    je      @@already_installed
 
     mov     ax, 352Fh
     int     21h
@@ -73,7 +135,7 @@ install_multiplex_handler proc
     xor     ax, ax
     jmp     @@to_return
 
-@@already_runned:
+@@already_installed:
     mov     ax, 1
 
 @@to_return:
@@ -86,11 +148,11 @@ install_multiplex_handler proc
     ret
 install_multiplex_handler endp
 
-;
-; Store default handler at default_handler variable
-;
 
-save_dafault_handler proc
+;
+; Set current 21h handler to new handler
+;
+set_handler proc
     push    bp
     mov     bp, sp
 
@@ -104,25 +166,13 @@ save_dafault_handler proc
     mov     word ptr default_handler,     bx
     mov     word ptr default_handler + 2, es
 
+    mov     ax, 2521h
+    lea     dx, dos_functions_handler
+    int     21h
+
     pop     es
     pop     bx
     pop     ax
-
-    mov     sp, bp
-    pop     bp
-    ret
-save_dafault_handler endp
-
-
-;
-; Set current 21h handler to new handler
-;
-
-set_handler proc
-    push    bp
-    mov     bp, sp
-
-    call    save_dafault_handler
 
     mov     sp, bp
     pop     bp
@@ -135,7 +185,6 @@ set_handler endp
 ; An old way to create one, doesnt allow to pass return code
 ; and have limit of the resident size up to 64KB
 ;
-
 create_resident_by_interruption proc
     push    bp
     mov     bp, sp
@@ -157,9 +206,27 @@ create_resident_by_interruption endp
 
 ;
 ; Create resident by function
+; Newer way to install resident, doesnt have limit of resident size
 ;
-
 create_resident_by_function proc
+    push    bp
+    mov     bp, sp
+
+    call    install_multiplex_handler
+    cmp     ax, 1
+    je      @@to_return
+
+    call    set_handler
+
+    mov     ax, 3100h
+    lea     dx, resident_end
+    add     dx, 15
+    shr     dx, 4
+    int     21h
+
+@@to_return:
+    mov     sp, bp
+    pop     bp
     ret
 create_resident_by_function endp
 
@@ -168,7 +235,6 @@ create_resident_by_function endp
 ; Checks the command line arguments and select right way to create resident
 ; Terminates and starts the resident nor returns error code
 ;
-
 usage_string db "Make funny string printing! Use argument o - to use 27h interrupt or n - to use function 31h", 10, 13, '$'
 error_installing db "Couldnt install resident", 10, 13, '$'
 
@@ -195,7 +261,7 @@ main proc
     mov     ah, 09h
     lea     dx, error_installing
     int     21h
-    mov     al, 1
+    mov     al, 2
     jmp     @@to_return
 
 @@using_new_version:
@@ -203,7 +269,7 @@ main proc
     mov     ah, 09h
     lea     dx, error_installing
     int     21h
-    mov     al, 1
+    mov     al, 2
     jmp     @@to_return
 
 @@invalid_usage:
