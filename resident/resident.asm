@@ -23,7 +23,7 @@ _start:
 ;
 multiplex_hundler proc    
     cmp     ax, multiplex_function_number
-    jne     cs:@@call_default_handler
+    jne     @@call_default_handler
 
     mov     al, multiplex_return_code
 
@@ -54,14 +54,14 @@ reverse_string proc
 @@shift_si_to_end:
     lodsb
     cmp     al, '$'
-    jne     cs:@@shift_si_to_end
+    jne     @@shift_si_to_end
 
     ; si points to after $ symbol, so it is necessary to shift it to left twice
     sub     si, 2
 
 @@reversing:
     cmp     si, di
-    jb      cs:@@reverse_end
+    jb      @@reverse_end
 
     mov     al, [si]
     mov     bl, [di]
@@ -71,7 +71,7 @@ reverse_string proc
     dec     si
     inc     di
 
-    jmp     cs:@@reversing
+    jmp     @@reversing
 
 @@reverse_end:
     pop     di
@@ -85,17 +85,56 @@ reverse_string proc
 reverse_string endp
 
 ;
+; Invert letter case
+;
+do_inverse_letter_case proc
+    cmp     dl, 'A'
+    jb      @@to_return
+
+    cmp     dl, 'z'
+    ja      @@to_return
+
+    cmp     dl, 'Z'
+    jbe     @@invert_to_lower
+
+    cmp     dl, 'a'
+    jae     @@invert_to_upper
+
+    jmp     @@to_return
+
+@@invert_to_lower:
+    add     dl, 97 - 65
+    jmp     @@to_return
+
+@@invert_to_upper:
+    sub     dl, 97 - 65
+
+@@to_return:
+    ret
+do_inverse_letter_case endp
+
+;
 ; New Handler for 21h interruption
-; Checks if called dos function is string printing and reverse the string if it is
+; Checks if called dos function is 09h and reverse the string if it is
+; Checks if called dos function is 02h and inverse case of the letter if it is
 ;
 dos_functions_handler proc
-
     cmp     ah, 09h
-    jne     cs:@@call_dos_default_handler
+    je      @@reverse_string
 
+    cmp     ah, 02h
+    je      @@inverse_letter_case
+
+    jmp     @@call_dos_default_handler
+
+@@reverse_string:
     push    dx
-    call    cs:reverse_string
+    call    reverse_string
     add     sp, 2
+    jmp     @@call_dos_default_handler
+
+@@inverse_letter_case:
+    call    do_inverse_letter_case
 
 @@call_dos_default_handler:
     jmp     cs:default_handler
@@ -212,6 +251,12 @@ create_resident_by_function proc
     push    bp
     mov     bp, sp
 
+    mov     ah, 30h
+    int     21h
+
+    cmp     al, 2
+    jb      @@to_return
+
     call    install_multiplex_handler
     cmp     ax, 1
     je      @@to_return
@@ -219,8 +264,7 @@ create_resident_by_function proc
     call    set_handler
 
     mov     ax, 3100h
-    lea     dx, resident_end
-    add     dx, 15
+    lea     dx, resident_end + 15
     shr     dx, 4
     int     21h
 
