@@ -142,6 +142,47 @@ dos_functions_handler endp
 
 resident_end:
 
+hexademical_alphabet db '0123456789ABCDEF'
+
+print_hex_num proc
+    push    bp
+    mov     bp, sp
+
+    push    dx
+    push    bx
+    push    cx
+
+    mov     cx, 4
+
+@@l:
+    xor     dx, dx
+    mov     bx, 16
+    div     bx
+
+    lea     bx, hexademical_alphabet
+    add     bx, dx
+    mov     dl, [bx]
+    push    dx
+    
+    loop    @@l
+
+    mov     cx, 4
+
+@@l2:
+    pop     dx
+    mov     ah, 02h
+    int     21h
+    loop    @@l2
+
+    pop     cx
+    pop     bx
+    pop     dx
+
+    mov     sp, bp
+    pop     bp
+    ret
+print_hex_num endp
+
 ;
 ; Check for resident are already runned
 ; if yes - returns 1
@@ -205,8 +246,34 @@ set_handler proc
     mov     word ptr default_handler,     bx
     mov     word ptr default_handler + 2, es
 
+    mov     ax, es
+    call    print_hex_num
+    mov     ah, 02h
+    mov     dl, ':'
+    int     21h
+    mov     ax, bx
+    call    print_hex_num
+    mov     ah, 02h
+    mov     dl, 10
+    int     21h
+    mov     dl, 13
+    int     21h
+
     mov     ax, 2521h
     lea     dx, dos_functions_handler
+    int     21h
+
+    mov     ax, cs
+    call    print_hex_num
+    mov     ah, 02h
+    mov     dl, ':'
+    int     21h
+    mov     ax, bx
+    call    print_hex_num
+    mov     ah, 02h
+    mov     dl, 10
+    int     21h
+    mov     dl, 13
     int     21h
 
     pop     es
