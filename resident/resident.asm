@@ -268,7 +268,7 @@ set_handler proc
     mov     ah, 02h
     mov     dl, ':'
     int     21h
-    mov     ax, bx
+    mov     ax, dx
     call    print_hex_num
     mov     ah, 02h
     mov     dl, 10
