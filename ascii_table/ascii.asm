@@ -138,6 +138,7 @@ get_line_start_address proc
     push    ax
     push    bx
     push    dx
+    push    es
 
     mov     bx, ax
 
@@ -158,7 +159,16 @@ get_line_start_address proc
     add     ax, dx
 
     mov     di, ax 
+    xor     ch, ch
+    mov     cl, byte ptr pagenum
+    xor     bx, bx
+    mov     es, bx
 
+@@adding:
+    add     di, word ptr es:[44Ch]
+    loop    @@adding    
+
+    pop     es
     pop     dx
     pop     bx
     pop     ax
@@ -259,12 +269,16 @@ draw_line proc
     mov     word ptr es:[di], ax
     add     di, 2
 
+    cmp     cx, 15
+    je      @@continue
+
     call    get_attributes
     mov     al, ' '
     
     mov     word ptr es:[di], ax
     add     di, 2
 
+@@continue:
     inc     cx
     inc     dx
     jmp     @@draw_line_cycle
