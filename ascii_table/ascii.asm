@@ -162,12 +162,16 @@ get_line_start_address proc
     xor     ch, ch
     mov     cl, byte ptr pagenum
     xor     bx, bx
-    mov     es, bx
+    mov     es, bxcmp     
+
+    test    cl, cl
+    jz      @@to_return
 
 @@adding:
     add     di, word ptr es:[44Ch]
     loop    @@adding    
 
+@@to_return:
     pop     es
     pop     dx
     pop     bx
