@@ -7,8 +7,10 @@ locals @@
 start:
     jmp     actual_start
 
-    modenum dw ?
-    pagenum dw ?
+    modenum db ?
+    pagenum db ?
+    screen_height db ?
+    screen_width db ?
 
 read_num proc
     push    cx
@@ -40,6 +42,7 @@ read_num proc
     pop     dx
     pop     bx
     pop     cx
+
     ret
 read_num endp
 
@@ -55,6 +58,7 @@ find_non_space proc
     je      @@find_loop
 
     dec     si
+
     ret
 find_non_space endp
 
@@ -72,7 +76,7 @@ parse_arguments proc
     je     @@failed
 
     call    read_num
-    mov     word ptr modenum, ax
+    mov     byte ptr modenum, al
 
     call    find_non_space
 
@@ -80,7 +84,7 @@ parse_arguments proc
     je     @@failed
 
     call    read_num
-    mov     word ptr pagenum, ax
+    mov     byte ptr pagenum, al
 
 @@success:
     xor     ax, ax
@@ -93,9 +97,187 @@ parse_arguments proc
     pop     dx
     pop     cx
     pop     bx
+
     ret
 parse_arguments endp
 
+
+column_middle db ?
+lines_middle db ?
+
+calc_middle proc
+    push    ax
+
+    mov     al, byte ptr screen_height
+    shr     al, 1
+    mov     byte ptr lines_middle, al
+
+    mov     al, byte ptr screen_width
+    shr     al, 1
+    mov     byte ptr column_middle, al
+
+    pop     ax
+
+    ret
+calc_middle endp
+
+
+wait_key proc
+    push    ax
+
+    xor     ax, ax
+    int     16h
+
+    pop     ax
+
+    ret
+wait_key endp
+
+
+get_line_start_address proc
+    push    ax
+    push    bx
+    push    dx
+
+    mov     bx, ax
+
+    xor     ax, ax
+    mov     al, byte ptr lines_middle
+    sub     ax, 8
+    add     ax, bx
+    mov     bl, byte ptr screen_width
+    mul     bx
+
+    xor     dx, dx
+    mov     dl, byte ptr column_middle
+    sub     dx, 16
+
+    shl     ax, 1
+
+    shl     dx, 1
+    add     ax, dx
+
+    mov     di, ax 
+
+    pop     dx
+    pop     bx
+    pop     ax
+
+    ret
+get_line_start_address endp
+
+
+draw_line proc
+    push    ax
+    push    bx
+    push    cx
+    push    dx
+    push    es
+    push    di
+
+    xor     dx, dx
+    mov     dx, ax
+    shl     dx, 4
+
+    call    get_line_start_address
+    mov     cx, 0B800h
+    mov     es, cx
+
+    xor     cx, cx
+
+@@draw_line_cycle:
+    cmp     cx, 16
+    je      @@draw_line_cycle_end
+
+    mov     al, dl
+    mov     ah, 30h
+
+    mov     word ptr es:[di], ax
+    add     di, 2
+
+    mov     al, ' '
+    mov     ah, 30h
+    
+    mov     word ptr es:[di], ax
+    add     di, 2
+
+    inc     cx
+    inc     dx
+    jmp     @@draw_line_cycle
+
+@@draw_line_cycle_end:
+    pop     di
+    pop     es
+    pop     dx
+    pop     cx
+    pop     bx
+    pop     ax
+
+    ret
+draw_line endp
+
+
+draw_table proc
+    push    ax
+
+    xor     ax, ax
+
+@@lines_drawing:
+    cmp     ax, 16
+    je      @@lines_drawing_end
+
+    call    draw_line
+
+    inc     ax
+    jmp     @@lines_drawing
+
+@@lines_drawing_end:
+    call    wait_key
+
+    pop     ax
+
+    ret
+draw_table endp
+
+
+old_mode db ?
+old_page db ?
+
+enter_mode proc
+    mov     ah, 0Fh
+    int     10h
+
+    mov     byte ptr old_mode, al
+    mov     byte ptr old_page, bh
+
+    xor     ah, ah
+    mov     al, byte ptr modenum
+    int     10h
+
+    mov     ah, 05h
+    mov     al, byte ptr pagenum
+    int     10h
+
+    mov     byte ptr screen_height, 25 ; ??? how to get lines number ???
+
+    mov     ah, 0Fh
+    int     10h
+
+    mov     byte ptr screen_width, ah
+
+    call    calc_middle
+    call    draw_table
+
+    xor     ah, ah
+    mov     al, byte ptr old_mode
+    int     10h
+
+    mov     ah, 05h
+    mov     al, byte ptr old_page
+    int     10h
+
+    ret
+enter_mode endp
 
 usage db 'Usage: ascii <mode number> <page number>', 10, 13, '$'
 
@@ -105,8 +287,7 @@ actual_start:
     test    ax, ax
     jnz     @@print_usage
 
-    mov     ax, word ptr modenum
-    mov     ax, word ptr pagenum    
+    call    enter_mode
 
     jmp     @@to_return
 
