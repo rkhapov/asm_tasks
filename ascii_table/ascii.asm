@@ -167,6 +167,70 @@ get_line_start_address proc
 get_line_start_address endp
 
 
+
+get_attributes proc
+    push    dx
+    push    bx
+
+    mov     bx, dx
+
+    shr     bx, 4
+
+    cmp     bx, 0
+    je      @@zero_line
+
+    cmp     bx, 1
+    je      @@first_line
+
+    cmp     bx, 2
+    je      @@second_line
+
+    cmp     bx, 3
+    je      @@third_line
+
+    jmp     @@other
+
+@@zero_line:
+    mov     ah, 020h
+    add     ah, dl
+
+    jmp     @@to_return
+
+@@first_line:
+    mov     ah, 0C0h
+    and     dl, 0Fh
+    add     ah, dl
+
+    jmp     @@to_return
+
+@@second_line:
+    and     dl, 0Fh
+    mov     ah, dl
+    inc     ah
+    shl     ah, 4
+    and     ah, 7Fh
+    add     ah, dl
+
+    jmp     @@to_return
+
+@@third_line:
+    mov     ah, 040h
+    and     dl, 0Fh
+    add     ah, dl
+
+    jmp     @@to_return
+
+@@other:
+    mov     ah, 30h
+
+@@to_return:
+    pop     bx
+    pop     dx
+
+    ret
+get_attributes endp
+
+
 draw_line proc
     push    ax
     push    bx
@@ -190,13 +254,13 @@ draw_line proc
     je      @@draw_line_cycle_end
 
     mov     al, dl
-    mov     ah, 30h
+    call    get_attributes
 
     mov     word ptr es:[di], ax
     add     di, 2
 
+    call    get_attributes
     mov     al, ' '
-    mov     ah, 30h
     
     mov     word ptr es:[di], ax
     add     di, 2
