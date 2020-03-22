@@ -5,101 +5,34 @@ org 100h
 locals @@
 
 start:
-    jmp     actual_start
+    jmp     call_main
 
-    modenum db ?
-    pagenum db ?
+    modenum db 3
+    pagenum db 0
+    attributes_mask db 07Fh
     screen_height db ?
     screen_width db ?
 
-read_num proc
-    push    cx
-    push    bx
-    push    dx
+    include argparse.asm
+    include strings.asm
 
-    mov     bx, 10
+
+calc_screen_sizes proc
+    push    ax
+    push    es
+
+    mov     byte ptr screen_height, 25 ; ??? how to get lines number ???
+
     xor     ax, ax
-    xor     cx, cx
+    mov     es, ax
+    mov     ax, word ptr es:[44Ah]
 
-@@read_loop:
-    mov     cl, [si]
-    inc     si
-
-    cmp     cl, '0'
-    jb      @@read_loop_end
-
-    cmp     cl, '9'
-    ja      @@read_loop_end
-
-    sub     cl, '0'
-
-    mul     bx
-    add     ax, cx
-
-    jmp     @@read_loop
-
-@@read_loop_end:
-    pop     dx
-    pop     bx
-    pop     cx
-
+    mov     byte ptr screen_width, al
+    
+    pop     es
+    pop     ax
     ret
-read_num endp
-
-
-find_non_space proc
-@@find_loop:
-    lodsb
-
-    cmp     al, ' '
-    je      @@find_loop
-
-    cmp     al, 9
-    je      @@find_loop
-
-    dec     si
-
-    ret
-find_non_space endp
-
-
-parse_arguments proc
-    push    bx
-    push    cx
-    push    dx
-
-    mov     si, 81h
-
-    call    find_non_space
-
-    cmp     al, 0Dh
-    je     @@failed
-
-    call    read_num
-    mov     byte ptr modenum, al
-
-    call    find_non_space
-
-    cmp     al, 0Dh
-    je     @@failed
-
-    call    read_num
-    mov     byte ptr pagenum, al
-
-@@success:
-    xor     ax, ax
-    jmp     @@to_return
-
-@@failed:
-    mov     ax, 1
-
-@@to_return:
-    pop     dx
-    pop     cx
-    pop     bx
-
-    ret
-parse_arguments endp
+calc_screen_sizes endp
 
 
 column_middle db ?
@@ -159,17 +92,10 @@ get_line_start_address proc
     add     ax, dx
 
     mov     di, ax 
-    xor     ch, ch
-    mov     cl, byte ptr pagenum
+    
     xor     bx, bx
-    mov     es, bxcmp     
-
-    test    cl, cl
-    jz      @@to_return
-
-@@adding:
-    add     di, word ptr es:[44Ch]
-    loop    @@adding    
+    mov     es, bx     
+    add     di, word ptr es:[44Eh]
 
 @@to_return:
     pop     es
@@ -238,6 +164,8 @@ get_attributes proc
     mov     ah, 30h
 
 @@to_return:
+    and     ah, attributes_mask
+
     pop     bx
     pop     dx
 
@@ -326,11 +254,16 @@ old_mode db ?
 old_page db ?
 
 enter_mode proc
-    mov     ah, 0Fh
-    int     10h
+    push    es
 
+    xor     ax, ax
+    mov     es, ax
+
+    mov     al, byte ptr es:[449h]
     mov     byte ptr old_mode, al
-    mov     byte ptr old_page, bh
+
+    mov     al, byte ptr es:[462h]
+    mov     byte ptr old_page, al
 
     xor     ah, ah
     mov     al, byte ptr modenum
@@ -340,13 +273,7 @@ enter_mode proc
     mov     al, byte ptr pagenum
     int     10h
 
-    mov     byte ptr screen_height, 25 ; ??? how to get lines number ???
-
-    mov     ah, 0Fh
-    int     10h
-
-    mov     byte ptr screen_width, ah
-
+    call    calc_screen_sizes
     call    calc_middle
     call    draw_table
 
@@ -358,26 +285,176 @@ enter_mode proc
     mov     al, byte ptr old_page
     int     10h
 
+    pop     es
+
     ret
 enter_mode endp
 
-usage db 'Usage: ascii <mode number> <page number>', 10, 13, '$'
+invalid_mode db 'Invalid graphic mode. Use 0, 1, 2, 3 or 7', 13, 10, '$'
+invalid_page db 'Invalid page, use 0-7 for mode 0, 1 and 7, 0-3 for mode 2 and 3', 13, 10, '$'
 
-actual_start:
-    call    parse_arguments
+is_mode_and_page_correct proc
+    push    dx
 
-    test    ax, ax
-    jnz     @@print_usage
+    mov     al, byte ptr modenum
 
-    call    enter_mode
+    cmp     al, 0
+    je      @@check_page_is_from_0_to_7
 
+    cmp     al, 1
+    je      @@check_page_is_from_0_to_7
+
+    cmp     al, 2
+    je      @@check_page_is_from_0_to_3
+
+    cmp     al, 3
+    je      @@check_page_is_from_0_to_3
+
+    cmp     al, 7
+    je      @@check_page_is_from_0_to_7
+
+    mov     dx, offset invalid_mode
+    jmp     @@failed
+
+@@check_page_is_from_0_to_7:
+    mov     al, byte ptr pagenum
+    
+    cmp     al, 7
+    jle     @@success
+
+    mov     dx, offset invalid_page
+    jmp     @@failed      
+
+@@check_page_is_from_0_to_3:
+    mov     al, byte ptr pagenum
+    
+    cmp     al, 3
+    jle     @@success
+
+    mov     dx, offset invalid_page
+    jmp     @@failed
+    
+@@success:
+    mov     ax, 1
     jmp     @@to_return
 
-@@print_usage:
+@@failed:
     mov     ah, 09h
-    mov     dx, offset usage
     int     21h
 
+    xor     ax, ax
+
 @@to_return:
+    pop     dx
     ret
+is_mode_and_page_correct endp
+
+help db 'ascii - program to print ascii characters table', 13, 10
+     db 'use keys:', 13, 10    
+     db '  -m <mode> to specify graphic mode (0, 1, 2, 3 or 7) default = 3', 13, 10
+     db '  -p <page> to specify page number (0-7, 0-7, 0-3, 0-3 or 0-7) default = 0', 13, 10
+     db '  -b to enable blinking', 13, 10
+     db '  -h to see this help and exit', 13, 10, '$'
+
+main proc
+@@argc equ [bp + 6]
+@@argv equ [bp + 4]
+    push    bp
+    mov     bp, sp
+    
+    mov     ax, @@argc
+    push    ax
+    mov     ax, @@argv
+    push    ax
+    mov     ax, 'h'
+    push    ax
+    call    is_argument_set
+    add     sp, 6
+
+    test    ax, ax
+    jnz     @@print_help    
+
+    mov     ax, @@argc
+    push    ax
+    mov     ax, @@argv
+    push    ax
+    mov     ax, 'b'
+    push    ax
+    call    is_argument_set
+    add     sp, 6
+
+    test    ax, ax
+    jz      @@no_b_flag
+
+    mov     byte ptr attributes_mask, 0FFh  
+
+@@no_b_flag:    
+    mov     ax, @@argc
+    push    ax
+    mov     ax, @@argv
+    push    ax
+    mov     ax, 'm'
+    push    ax
+    call    get_arg_value
+    add     sp, 6
+
+    test    ax, ax
+    jz      @@no_m_argument
+
+    mov     si, ax
+    call    to_int
+    mov     modenum, al
+    
+@@no_m_argument:
+    mov     ax, @@argc
+    push    ax
+    mov     ax, @@argv
+    push    ax
+    mov     ax, 'p'
+    push    ax
+    call    get_arg_value
+    add     sp, 6
+
+    test    ax, ax
+    jz      @@to_check_page_and_mode
+
+    mov     si, ax
+    call    to_int
+    mov     pagenum, al
+
+@@to_check_page_and_mode:
+    call    is_mode_and_page_correct
+    test    ax, ax
+    jz      @@to_return
+
+    call    enter_mode
+    xor     al, al
+    jmp     @@to_return
+
+@@print_help:
+    mov     ah, 09h
+    mov     dx, offset help
+    int     21h
+
+    mov     al, 1
+
+@@to_return:
+    mov     sp, bp
+    pop     bp
+
+    ret
+main endp
+
+call_main:
+    call    parse_arguments
+
+    xor     ax, ax
+    mov     al, arguments_count
+    push    ax
+    lea     ax, arguments_pointers
+    push    ax
+    call    main
+
+    mov     ah, 4Ch
+    int     21h
 end start
