@@ -188,7 +188,7 @@ get_attributes proc
     jmp     @@to_return
 
 @@other:
-    mov     ah, 30h
+    mov     ah, 7h
 
 @@to_return:
     and     ah, attributes_mask
@@ -283,9 +283,7 @@ print_string_centrized_by_columns proc
 
     call    get_line_start_address
 
-    push    si
     call    strlen
-    add     sp, 2
 
     xor     bh, bh
     mov     bl, byte ptr column_middle
@@ -321,9 +319,9 @@ print_string_centrized_by_columns proc
 print_string_centrized_by_columns endp
 
 
-mode_page_str   db 'mode - '
+mode_page_str   db 'Mode - '
 mode_to_insert  db ?
-                db ' page - '
+                db ' Page - '
 page_to_insert  db ?
                 db 0
 
@@ -351,7 +349,7 @@ draw_mode_and_page proc
 draw_mode_and_page endp
 
 
-press_any_key db 'press any key...', 0
+press_any_key db 'Press any key...', 0
 
 draw_press_any_key proc
     push    ax
@@ -368,6 +366,23 @@ draw_press_any_key proc
     ret
 draw_press_any_key endp
 
+
+title_msg db 'ASCII characters table', 0
+
+draw_title proc
+    push    ax
+    push    si
+
+    xor     ax, ax
+    mov     al, lines_middle
+    sub     al, 10
+    lea     si, title_msg
+    call    print_string_centrized_by_columns
+
+    pop     si
+    pop     ax
+    ret
+draw_title endp
 
 old_mode db ?
 old_page db ?
@@ -394,6 +409,7 @@ enter_mode proc
 
     call    calc_screen_sizes
     call    calc_middle
+    call    draw_title
     call    draw_mode_and_page
     call    draw_table
     call    draw_press_any_key

@@ -71,13 +71,11 @@ strconcat endp
 
 
 strlen proc
-@@string equ [bp + 2]
     push    bp
     mov     bp, sp
 
     push    si
 
-    mov     si, @@string
     xor     ah, ah
 
 @@cycle:
