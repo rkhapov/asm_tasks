@@ -449,7 +449,7 @@ draw_left_numeric proc
     call    get_line_start_address
 
     mov     bl, byte ptr column_middle
-    sub     bl, 18
+    sub     bl, 17
     shl     bl, 1
     add     di, bx
 
