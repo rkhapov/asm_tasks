@@ -70,56 +70,34 @@ strconcat proc
 strconcat endp
 
 
+strlen proc
+@@string equ [bp + 2]
+    push    bp
+    mov     bp, sp
 
-strtonum proc
-@@string equ [bp + 4]
+    push    si
 
-    push bp
-    mov bp, sp
+    mov     si, @@string
+    xor     ah, ah
 
-    push bx
-    push cx
-    push dx
-    push si
-
-    xor ax, ax
-    xor cx, cx
-    xor bx, bx
-    mov si, @@string
-
-@@1:
+@@cycle:
     lodsb
+    test    al, al
+    jz      @@cycle_end
 
-    cmp al, '0'
-    jl @@@@to_return
+    inc     ah
 
-    cmp al, '9'
-    jg @@@@to_return
+    jmp     @@cycle
 
-    sub al, '0'
+@@cycle_end:
+    xchg    al, ah
+    pop     si
 
-    xchg bx, ax
-    mov dx, 10
-    mul dx
-
-    add ax, bx
-
-    xchg bx, ax
-
-    jmp @@1
-
-@@@@to_return:
-    mov ax, bx
-
-    pop si
-    pop dx
-    pop cx
-    pop bx
-
-    mov sp, bp
-    pop bp
+    mov     sp, bp
+    pop     bp
     ret
-strtonum endp
+strlen endp
+
 
 zeromem proc
 @@length equ [bp + 4]

@@ -67,7 +67,7 @@ wait_key proc
 wait_key endp
 
 
-get_line_start_address proc
+get_table_line_start_address proc
     push    ax
     push    bx
     push    dx
@@ -104,8 +104,35 @@ get_line_start_address proc
     pop     ax
 
     ret
-get_line_start_address endp
+get_table_line_start_address endp
 
+
+get_line_start_address proc
+    push    ax
+    push    bx
+    push    dx
+    push    es
+
+    xor     bx, bx
+    mov     bl, byte ptr screen_width
+    mul     bx
+
+    shl     ax, 1
+
+    mov     di, ax 
+    
+    xor     bx, bx
+    mov     es, bx     
+    add     di, word ptr es:[44Eh]
+
+@@to_return:
+    pop     es
+    pop     dx
+    pop     bx
+    pop     ax
+
+    ret
+get_line_start_address endp
 
 
 get_attributes proc
@@ -185,7 +212,7 @@ draw_line proc
     mov     dx, ax
     shl     dx, 4
 
-    call    get_line_start_address
+    call    get_table_line_start_address
     mov     cx, 0B800h
     mov     es, cx
 
@@ -242,12 +269,104 @@ draw_table proc
     jmp     @@lines_drawing
 
 @@lines_drawing_end:
-    call    wait_key
-
     pop     ax
 
     ret
 draw_table endp
+
+
+print_string_centrized_by_columns proc
+    push    ax
+    push    bx
+    push    es
+    push    di
+
+    call    get_line_start_address
+
+    push    si
+    call    strlen
+    add     sp, 2
+
+    xor     bh, bh
+    mov     bl, byte ptr column_middle
+    shr     al, 1
+    sub     bl, al
+    shl     bl, 1
+
+    add     di, bx
+
+    mov     ax, 0B800h
+    mov     es, ax
+
+    cld
+
+@@cycle:
+    lodsb
+    test    al, al
+    jz      @@cycle_end
+
+    mov     ah, 7
+
+    mov     word ptr es:[di], ax
+    add     di, 2
+
+    jmp     @@cycle
+
+@@cycle_end:
+    pop     di
+    pop     es
+    pop     bx
+    pop     ax
+    ret
+print_string_centrized_by_columns endp
+
+
+mode_page_str   db 'mode - '
+mode_to_insert  db ?
+                db ' page - '
+page_to_insert  db ?
+                db 0
+
+draw_mode_and_page proc
+    push    ax
+    push    si
+
+    mov     al, byte ptr modenum
+    add     al, '0'
+    mov     byte ptr mode_to_insert, al
+
+    mov     al, byte ptr pagenum
+    add     al, '0'
+    mov     byte ptr page_to_insert, al
+
+    xor     ax, ax
+    mov     al, lines_middle
+    sub     al, 9
+    lea     si, mode_page_str
+    call    print_string_centrized_by_columns
+
+    pop     si
+    pop     ax
+    ret
+draw_mode_and_page endp
+
+
+press_any_key db 'press any key...', 0
+
+draw_press_any_key proc
+    push    ax
+    push    si
+
+    xor     ax, ax
+    mov     al, lines_middle
+    add     al, 8
+    lea     si, press_any_key
+    call    print_string_centrized_by_columns
+
+    pop     si
+    pop     ax
+    ret
+draw_press_any_key endp
 
 
 old_mode db ?
@@ -275,7 +394,10 @@ enter_mode proc
 
     call    calc_screen_sizes
     call    calc_middle
+    call    draw_mode_and_page
     call    draw_table
+    call    draw_press_any_key
+    call    wait_key
 
     xor     ah, ah
     mov     al, byte ptr old_mode
