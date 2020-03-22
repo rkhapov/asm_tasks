@@ -135,10 +135,42 @@ get_line_start_address proc
 get_line_start_address endp
 
 
+get_attributes_for_monochrome proc
+    mov     bx, dx
+
+    shr     bx, 4
+
+    cmp     bx, 1
+    je      @@first_line
+
+    jmp     @@other
+
+@@first_line:
+    mov     ah, 0F0h
+
+    jmp     @@to_return
+
+@@other:
+    mov     ah, 70h
+
+@@to_return:
+    ret
+get_attributes_for_monochrome endp
+
+
 get_attributes proc
     push    dx
     push    bx
 
+    mov     ah, byte ptr modenum
+    cmp     ah, 7
+    jne     @@not_monochrome
+
+    call    get_attributes_for_monochrome
+    
+    jmp     @@to_return
+
+@@not_monochrome:
     mov     bx, dx
 
     shr     bx, 4
@@ -191,13 +223,35 @@ get_attributes proc
     mov     ah, 7h
 
 @@to_return:
-    and     ah, attributes_mask
+    and     ah, byte ptr attributes_mask
 
     pop     bx
     pop     dx
 
     ret
 get_attributes endp
+
+
+load_buffer_start_address proc
+    push    ax
+
+    mov     al, byte ptr modenum
+    cmp     al, 7
+    jne      @@other
+
+@@for_momochrome:
+    mov     ax, 0B000h
+
+    jmp     @@to_return
+
+@@other:
+    mov     ax, 0B800h
+
+@@to_return:
+    mov     es, ax
+    pop     ax
+    ret
+load_buffer_start_address endp
 
 
 draw_line proc
@@ -213,8 +267,7 @@ draw_line proc
     shl     dx, 4
 
     call    get_table_line_start_address
-    mov     cx, 0B800h
-    mov     es, cx
+    call    load_buffer_start_address
 
     xor     cx, cx
 
@@ -293,8 +346,7 @@ print_string_centrized_by_columns proc
 
     add     di, bx
 
-    mov     ax, 0B800h
-    mov     es, ax
+    call    load_buffer_start_address
 
     cld
 
@@ -429,7 +481,7 @@ enter_mode proc
 enter_mode endp
 
 invalid_mode db 'Invalid graphic mode. Use 0, 1, 2, 3 or 7', 13, 10, '$'
-invalid_page db 'Invalid page, use 0-7 for mode 0, 1 and 7, 0-3 for mode 2 and 3', 13, 10, '$'
+invalid_page db 'Invalid page, use 0-7 for mode 0, 1, 0-3 for mode 2 and 3 and 0 for 7', 13, 10, '$'
 
 is_mode_and_page_correct proc
     push    dx
@@ -449,7 +501,7 @@ is_mode_and_page_correct proc
     je      @@check_page_is_from_0_to_3
 
     cmp     al, 7
-    je      @@check_page_is_from_0_to_7
+    je      @@check_page_is_0
 
     mov     dx, offset invalid_mode
     jmp     @@failed
@@ -468,6 +520,15 @@ is_mode_and_page_correct proc
     
     cmp     al, 3
     jle     @@success
+
+    mov     dx, offset invalid_page
+    jmp     @@failed
+
+@@check_page_is_0:
+    mov     al, byte ptr pagenum
+    
+    cmp     al, 0
+    je      @@success
 
     mov     dx, offset invalid_page
     jmp     @@failed
