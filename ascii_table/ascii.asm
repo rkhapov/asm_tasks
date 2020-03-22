@@ -220,7 +220,7 @@ get_attributes proc
     jmp     @@to_return
 
 @@other:
-    mov     ah, 7h
+    mov     ah, 30h
 
 @@to_return:
     and     ah, byte ptr attributes_mask
@@ -391,7 +391,7 @@ draw_mode_and_page proc
 
     xor     ax, ax
     mov     al, lines_middle
-    sub     al, 9
+    sub     al, 10
     lea     si, mode_page_str
     call    print_string_centrized_by_columns
 
@@ -399,6 +399,75 @@ draw_mode_and_page proc
     pop     ax
     ret
 draw_mode_and_page endp
+
+
+numeric_line db '0 1 2 3 4 5 6 7 8 9 A B C D E F ', 0
+
+draw_upper_numeric proc
+    push    ax
+    push    si
+
+    xor     ax, ax
+    mov     al, lines_middle
+    sub     al, 9
+    lea     si, numeric_line
+    call    print_string_centrized_by_columns
+
+    pop     si
+    pop     ax
+    ret
+draw_upper_numeric endp
+
+
+hex_numeric db '0123456789ABCDEF', 0
+
+draw_left_numeric proc
+    push    ax
+    push    bx
+    push    dx
+    push    si
+    push    di
+    push    es
+
+    call    load_buffer_start_address
+    lea     si, hex_numeric
+
+    xor     ax, ax
+    xor     dx, dx
+    xor     bx, bx
+
+    mov     al, byte ptr lines_middle
+    sub     al, 8
+
+    mov     dh, 7h
+
+@@cycle:
+    mov     dl, [si]
+    test    dl, dl
+    jz      @@cycle_end
+
+    call    get_line_start_address
+
+    mov     bl, byte ptr column_middle
+    sub     bl, 18
+    shl     bl, 1
+    add     di, bx
+
+    mov     word ptr es:[di], dx
+    
+    inc     si
+    inc     ax
+    jmp     @@cycle
+
+@@cycle_end:
+    pop     es
+    pop     di
+    pop     si
+    pop     dx
+    pop     bx
+    pop     ax
+    ret
+draw_left_numeric endp
 
 
 press_any_key db 'Press any key...', 0
@@ -427,7 +496,7 @@ draw_title proc
 
     xor     ax, ax
     mov     al, lines_middle
-    sub     al, 10
+    sub     al, 11
     lea     si, title_msg
     call    print_string_centrized_by_columns
 
@@ -464,6 +533,8 @@ enter_mode proc
     call    draw_title
     call    draw_mode_and_page
     call    draw_table
+    call    draw_upper_numeric
+    call    draw_left_numeric
     call    draw_press_any_key
     call    wait_key
 
