@@ -9,7 +9,8 @@ start:
 
     modenum db 3
     pagenum db 0
-    attributes_mask db 07Fh
+    attributes_mask db 0FFh
+    blinking_bit db 1
     screen_height db ?
     screen_width db ?
 
@@ -583,6 +584,10 @@ enter_mode proc
     mov     al, byte ptr pagenum
     int     10h
 
+    mov     ax, 1003h
+    mov     bl, byte ptr blinking_bit
+    int     10h
+
     call    calc_screen_sizes
     call    calc_middle
     call    draw_background
@@ -679,7 +684,8 @@ help db 'ascii - program to print ascii characters table', 13, 10
      db 'use keys:', 13, 10    
      db '  -m <mode> to specify graphic mode (0, 1, 2, 3 or 7) default = 3', 13, 10
      db '  -p <page> to specify page number (0-7, 0-7, 0-3, 0-3 or 0-7) default = 0', 13, 10
-     db '  -b to enable blinking', 13, 10
+     db '  -b to disable blinking\intensity bit by setting attributes mask', 13, 10
+     db '  -i to disable blinking by 10h function of 10h interrupt', 13, 10
      db '  -h to see this help and exit', 13, 10, '$'
 
 main proc
@@ -698,8 +704,11 @@ main proc
     add     sp, 6
 
     test    ax, ax
-    jnz     @@print_help    
+    jz      @@no_help
 
+    jmp     @@print_help
+
+@@no_help:
     mov     ax, @@argc
     push    ax
     mov     ax, @@argv
@@ -712,7 +721,7 @@ main proc
     test    ax, ax
     jz      @@no_b_flag
 
-    mov     byte ptr attributes_mask, 0FFh  
+    mov     byte ptr attributes_mask, 07Fh  
 
 @@no_b_flag:    
     mov     ax, @@argc
@@ -730,8 +739,23 @@ main proc
     mov     si, ax
     call    to_int
     mov     modenum, al
-    
+
 @@no_m_argument:
+    mov     ax, @@argc
+    push    ax
+    mov     ax, @@argv
+    push    ax
+    mov     ax, 'i'
+    push    ax
+    call    is_argument_set
+    add     sp, 6
+
+    test    ax, ax
+    jz      @@no_i_flag
+
+    mov     byte ptr blinking_bit, 0 
+
+@@no_i_flag:
     mov     ax, @@argc
     push    ax
     mov     ax, @@argv
