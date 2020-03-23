@@ -328,6 +328,25 @@ draw_table proc
 draw_table endp
 
 
+load_background_attributes proc
+    mov     ah, byte ptr modenum
+
+    cmp     ah, 7
+    je      @@for_monochrome_mode
+
+    mov     ah, 7Fh
+
+    jmp     @@to_return
+
+@@for_monochrome_mode:
+    mov     ah, 70h
+
+@@to_return:
+    ret
+load_background_attributes endp
+
+
+
 print_string_centrized_by_columns proc
     push    ax
     push    bx
@@ -355,7 +374,7 @@ print_string_centrized_by_columns proc
     test    al, al
     jz      @@cycle_end
 
-    mov     ah, 7
+    call    load_background_attributes
 
     mov     word ptr es:[di], ax
     add     di, 2
@@ -432,14 +451,17 @@ draw_left_numeric proc
     call    load_buffer_start_address
     lea     si, hex_numeric
 
-    xor     ax, ax
     xor     dx, dx
+    call    load_background_attributes
+    mov     dh, ah
+
+    xor     ax, ax
+    
     xor     bx, bx
 
     mov     al, byte ptr lines_middle
     sub     al, 8
 
-    mov     dh, 7h
 
 @@cycle:
     mov     dl, [si]
@@ -449,7 +471,7 @@ draw_left_numeric proc
     call    get_line_start_address
 
     mov     bl, byte ptr column_middle
-    sub     bl, 17
+    sub     bl, 18
     shl     bl, 1
     add     di, bx
 
@@ -505,6 +527,39 @@ draw_title proc
     ret
 draw_title endp
 
+
+draw_background proc
+    push    es
+    push    di
+    push    ax
+    push    si
+    push    cx
+
+    xor     ax, ax
+    call    get_line_start_address
+    mov     si, di
+
+    xor     ax, ax
+    mov     es, ax
+    mov     cx, word ptr es:[44Ch]
+    shr     cx, 1
+
+    call    load_buffer_start_address
+
+    mov     al, ' '
+    call    load_background_attributes
+
+    rep     stosw
+
+    pop     cx
+    pop     si
+    pop     ax
+    pop     di
+    pop     es
+    ret
+draw_background endp
+
+
 old_mode db ?
 old_page db ?
 
@@ -530,6 +585,7 @@ enter_mode proc
 
     call    calc_screen_sizes
     call    calc_middle
+    call    draw_background
     call    draw_title
     call    draw_mode_and_page
     call    draw_table

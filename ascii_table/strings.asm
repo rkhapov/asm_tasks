@@ -3,71 +3,31 @@ memcpy proc
 @@src equ [bp + 6]
 @@dst equ [bp + 4]
 
-    push bp
-    mov bp, sp
+    push    bp
+    mov     bp, sp
 
-    push ax
-    push si
-    push di
+    push    ax
+    push    si
+    push    di
 
-    mov si, @@src
-    mov di, @@dst
+    mov     si, @@src
+    mov     di, @@dst
 
 @@1:
     lodsb
     stosb
 
-    test al, al
-    jnz @@1
+    test    al, al
+    jnz     @@1
 
-    pop di
-    pop si
-    pop ax
+    pop     di
+    pop     si
+    pop     ax
 
-    mov sp, bp
-    pop bp
+    mov     sp, bp
+    pop     bp
     ret
 memcpy endp
-
-
-strconcat proc
-@@src equ [bp + 6]
-@@dst equ [bp + 4]
-
-    push bp
-    mov bp, sp
-
-    push ax
-    push si
-    push di
-
-    mov si, @@dst
-
-@@to_zero:
-    lodsb
-
-    test al, al
-    jnz @@to_zero
-
-    mov di, si
-    mov si, @@src
-    dec di
-
-@@1:
-    lodsb
-    stosb
-
-    test al, al
-    jnz @@1
-
-    pop di
-    pop si
-    pop ax
-
-    mov sp, bp
-    pop bp
-    ret
-strconcat endp
 
 
 strlen proc
@@ -100,29 +60,29 @@ strlen endp
 zeromem proc
 @@length equ [bp + 4]
 @@buffer equ [bp + 6]
-    push bp
-    mov bp, sp
+    push    bp
+    mov     bp, sp
 
-    push di
-    push cx
-    push ax
+    push    di
+    push    cx
+    push    ax
 
-    mov cx, @@length
-    mov di, @@buffer
-    xor ax, ax
+    mov     cx, @@length
+    mov     di, @@buffer
+    xor     ax, ax
 
 @@zeroing:
     stosb
 
-    dec cx
-    jnz @@zeroing
+    dec     cx
+    jnz     @@zeroing
 
-    pop ax
-    pop cx
-    pop di
+    pop     ax
+    pop     cx
+    pop     di
 
-    mov sp, bp
-    pop bp
+    mov     sp, bp
+    pop     bp
     ret
 zeromem endp
 
