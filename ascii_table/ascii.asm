@@ -683,9 +683,9 @@ is_mode_and_page_correct endp
 help db 'ascii - program to print ascii characters table', 13, 10
      db 'use keys:', 13, 10    
      db '  -m <mode> to specify graphic mode (0, 1, 2, 3 or 7) default = 3', 13, 10
-     db '  -p <page> to specify page number (0-7, 0-7, 0-3, 0-3 or 0-7) default = 0', 13, 10
+     db '  -p <page> to specify page number (0-7, 0-7, 0-3, 0-3 or 0) default = 0', 13, 10
      db '  -b to disable blinking\intensity bit by setting attributes mask', 13, 10
-     db '  -i to disable blinking by 10h function of 10h interrupt', 13, 10
+     db '  -i to disable blinking by toggle blinking to intensity', 13, 10
      db '  -h to see this help and exit', 13, 10, '$'
 
 main proc
