@@ -612,8 +612,8 @@ enter_mode proc
     ret
 enter_mode endp
 
-invalid_mode db 'Invalid graphic mode. Use 0, 1, 2, 3 or 7', 13, 10, '$'
-invalid_page db 'Invalid page, use 0-7 for mode 0, 1, 0-3 for mode 2 and 3 and 0 for 7', 13, 10, '$'
+invalid_mode db 'Invalid graphic mode. Use 0, 1, 2, 3 or 7', 10, 13, '$'
+invalid_page db 'Invalid page, use 0-7 for mode 0, 1, 0-3 for mode 2 and 3 and 0 for 7', 10, 13, '$'
 
 is_mode_and_page_correct proc
     push    dx
@@ -680,13 +680,15 @@ is_mode_and_page_correct proc
     ret
 is_mode_and_page_correct endp
 
-help db 'ascii - program to print ascii characters table', 13, 10
-     db 'use keys:', 13, 10    
-     db '  -m <mode> to specify graphic mode (0, 1, 2, 3 or 7) default = 3', 13, 10
-     db '  -p <page> to specify page number (0-7, 0-7, 0-3, 0-3 or 0) default = 0', 13, 10
-     db '  -b to disable blinking\intensity bit by setting attributes mask', 13, 10
-     db '  -i to disable blinking by toggle blinking to intensity', 13, 10
-     db '  -h to see this help and exit', 13, 10, '$'
+help db 'ascii - program to print ascii characters table', 10, 13
+     db 'use keys:', 10, 13    
+     db '  -m <mode> to specify graphic mode (0, 1, 2, 3 or 7) default = 3', 10, 13
+     db '  -p <page> to specify page number (0-7, 0-7, 0-3, 0-3 or 0) default = 0', 10, 13
+     db '  -b to disable blinking\intensity bit by setting attributes mask', 10, 13
+     db '  -i to disable blinking by toggle blinking to intensity', 10, 13
+     db '  -h to see this help and exit', 10, 13
+     db 'example: ', 22h, 'ascii -m 1 -p 6 -i', 22h, 10, 13,
+     db 'will draw ascii table in mode 1 to page 6 with toggled blinking bit to intensity bit', 10, 13, '$'
 
 main proc
 @@argc equ [bp + 6]
