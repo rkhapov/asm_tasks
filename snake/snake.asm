@@ -38,22 +38,68 @@ exit endp
 main:
     call    initialize
 
-    mov     ax, do1
-    mov     bx, 5FFFh
-    call    music_push_to_queue
-
-    mov     ax, do2
-    mov     bx, 09FFFh
-    call    music_push_to_queue
-
 @@loopa:
     call    keyboard_pop_from_buffer
     cmp     al, esc_scancode
     je      @@loopa_end
 
-@@to_play:
-    mov     ax, 1
-    call    music_update
+    lea     si, brick_wall_sprite
+    mov     dh, 5
+    mov     dl, 10
+    call    draw_sprite
+
+    lea     si, spring_wall_sprite
+    mov     dh, 50
+    mov     dl, 100
+    call    draw_sprite
+
+    lea     si, apple_sprite
+    mov     dh, 100
+    mov     dl, 50
+    call    draw_sprite
+
+    lea     si, poisoned_apple_sprite
+    mov     dh, 80
+    mov     dl, 50
+    call    draw_sprite
+
+    lea     si, burger_sprite
+    mov     dh, 30
+    mov     dl, 50
+    call    draw_sprite
+
+    lea     si, portal_sprite
+    mov     dh, 100
+    mov     dl, 100
+    call    draw_sprite
+
+    lea     si, snake_part_sprite
+    mov     dh, 100
+    mov     dl, 0
+    call    draw_sprite
+
+    lea     si, snake_head_left_sprite
+    mov     dh, 90
+    mov     dl, 0
+    call    draw_sprite
+
+    lea     si, snake_head_up_sprite
+    mov     dh, 90
+    mov     dl, 10
+    call    draw_sprite
+
+    lea     si, snake_head_right_sprite
+    mov     dh, 90
+    mov     dl, 20
+    call    draw_sprite
+
+    lea     si, snake_head_down_sprite
+    mov     dh, 90
+    mov     dl, 30
+    call    draw_sprite
+
+    call    clear_screen
+
 
     jmp     @@loopa
 
