@@ -111,12 +111,26 @@ on_collision proc
     cmp     al, map_object_type_apple
     je      @@do_collision_with_apple
 
+    cmp     al, map_object_type_poisoned_apple
+    je      @@do_collision_with_poisoned_apple
+
 @@do_collision_with_brick_wall:
     mov     byte ptr game_is_over, 1
     jmp     @@critical
 
 @@do_collision_with_apple:
     inc     byte ptr snake_current_length
+    jmp     @@non_critical
+
+@@do_collision_with_poisoned_apple:
+    cmp     byte ptr snake_current_length, 2
+    jg      @@decrease_length
+
+    mov     byte ptr game_is_over, 1
+    jmp     @@critical
+
+@@decrease_length:
+    dec     byte ptr snake_current_length
     jmp     @@non_critical
 
 @@non_critical:
