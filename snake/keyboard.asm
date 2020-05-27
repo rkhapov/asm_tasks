@@ -5,8 +5,13 @@ keyboard_buffer_head        dw offset keyboard_buffer
 keyboard_buffer_tail        dw offset keyboard_buffer
 
 
-esc_scancode    equ 01h
-space_scancode  equ 39h
+scancode_esc    equ 01h
+scancode_up     equ 48h
+scancode_down   equ 50h
+scancode_left   equ 4Bh
+scancode_right  equ 4Dh
+scancode_p      equ 19h
+scancode_enter  equ 1Ch
 
 
 keyboard_push_at_buffer proc
@@ -90,6 +95,29 @@ keyboard_is_empty proc
     ret
 keyboard_is_empty endp
 
+
+keyboard_clear_buffer proc
+    mov     word ptr keyboard_buffer_head, offset keyboard_buffer
+    mov     word ptr keyboard_buffer_tail, offset keyboard_buffer
+    ret
+endp
+
+
+;al - scancode
+keyboard_wait_until proc
+    push    ax
+
+    mov     ah, al
+
+@@wait_loop:
+    hlt
+    call    keyboard_pop_from_buffer
+    cmp     ah, al
+    jne     @@wait_loop
+
+    pop     ax
+    ret
+endp
 
 keyboard_wait_key proc
     push    ax

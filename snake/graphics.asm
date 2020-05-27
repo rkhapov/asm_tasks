@@ -215,7 +215,7 @@ exit_graphics_mode endp
 
 
 ; bx = word offset, dh = y, dl = x
-graphics_print_string proc
+print_string proc
     push    ax bx cx dx
 
     push    bx
@@ -251,14 +251,14 @@ endp
 draw_sprite proc
     push    ax bx cx dx es si di
 
+    call    load_line_offset_to_di
+
     mov     ax, 0A000h
     mov     es, ax
 
     xor     ax, ax
 
     cld
-
-    call    load_line_offset_to_di
 
 @@lines_loop:
     ;copy line
@@ -281,23 +281,86 @@ draw_map proc
     push    ax cx bx dx si di
 
     xor     dx, dx
+    xor     ch, ch
+    lea     bx, map
 
 @@lines_loop:
     xor     ax, ax
+    xor     cl, cl
 
 @@column_loop:
 
-    ; draw object sprite here...
+    call    draw_object
 
-    inc     ax
-    cmp     ax, map_width
+    add     ax, sprite_width
+    add     bx, type(map_object_t)
+    inc     cl
+    cmp     cl, map_width
     jl      @@column_loop
 
-
-    inc     dx
-    cmp     dx, map_height
+    add     dx, sprite_height
+    inc     ch
+    cmp     ch, map_height
     jl      @@lines_loop
 
     pop     di si dx bx cx ax
+    ret
+endp
+
+
+clear_screen proc
+    push    ax cx di es
+
+    mov     ax, 0A000h
+    mov     es, ax
+    xor     di, di
+    mov     bx, (screen_height * screen_width)
+
+    cld
+
+    xor     al, al
+
+@@clear_loop:
+    stosb
+
+    dec     bx
+    ja      @@clear_loop
+
+    pop     es di bx ax
+    ret
+endp
+
+
+; same order, as numbers of map_object_type_* values
+map_object_type_to_sprite   dw empty_sprite
+                            dw brick_wall_sprite
+                            dw spring_wall_sprite
+                            dw apple_sprite
+                            dw poisoned_apple_sprite
+                            dw burger_sprite
+                            dw portal_sprite
+                            dw snake_head_left_sprite
+                            dw snake_head_right_sprite
+                            dw snake_head_up_sprite
+                            dw snake_head_down_sprite
+                            dw snake_part_sprite
+
+
+;bx - map pointer
+;dx - screen y, ax - screen x
+draw_object proc
+    push cx bx
+
+    xor     cx, cx
+    mov     cl, [bx]._type
+
+    lea     bx, map_object_type_to_sprite
+    shl     cx, 1
+    add     bx, cx
+    mov     si, [bx]
+
+    call    draw_sprite
+
+    pop     bx cx
     ret
 endp
