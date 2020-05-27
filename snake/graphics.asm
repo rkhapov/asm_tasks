@@ -364,3 +364,30 @@ draw_object proc
     pop     bx cx
     ret
 endp
+
+
+;dh - y, dl - x
+;returns dx - y ax - x
+translate_cords proc
+    push    bx cx
+
+    mov     bx, dx
+
+    xor     dl, dl
+    mov     dl, dh
+    mov     ax, sprite_height
+    mul     dx
+
+    mov     cx, ax
+
+    mov     dx, bx
+    xor     dh, dh
+    mov     ax, sprite_width
+    mul     dx
+
+    mov     dx, cx
+
+    pop     cx bx
+    ret
+endp
+

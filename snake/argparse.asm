@@ -123,7 +123,7 @@ put_next_argument proc
 put_next_argument endp
 
 parse_arguments proc
-@@buffer_len equ 30h    
+@@buffer_len equ 30h
 @@buffer     equ [bp - @@buffer_len]
     push    bp
     mov     bp, sp
