@@ -19,7 +19,7 @@ map_object_t struc
 map_object_t ends
 
 
-map_object_life_time_apple equ 20
+map_object_life_time_apple equ 40
 
 
 map_width equ screen_width / 10

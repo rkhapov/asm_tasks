@@ -91,7 +91,7 @@ game_is_over db 0
 
 
 on_collision proc
-    push    ax dx cx bx
+    push    dx cx bx
 
     mov     dh, byte ptr snake_head_y_pos
     mov     dl, byte ptr snake_head_x_pos
@@ -127,7 +127,7 @@ on_collision proc
     xor     al, al
 
 @@to_return:
-    pop     bx cx dx ax
+    pop     bx cx dx
     ret
 endp
 
