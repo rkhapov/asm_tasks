@@ -12,6 +12,8 @@ scancode_left   equ 4Bh
 scancode_right  equ 4Dh
 scancode_p      equ 19h
 scancode_enter  equ 1Ch
+scancode_minus  equ 0Ch
+scancode_plus   equ 0Dh
 
 
 keyboard_push_at_buffer proc

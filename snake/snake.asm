@@ -70,6 +70,12 @@ process_keyboard proc
     cmp     al, scancode_right
     je      @@do_right
 
+    cmp     al, scancode_minus
+    je      @@do_decrease_speed
+
+    cmp     al, scancode_plus
+    je      @@do_increase_speed
+
     jmp     @@continue
 
 @@do_up:
@@ -86,6 +92,14 @@ process_keyboard proc
 
 @@do_left:
     call    try_set_direction_to_left
+    jmp     @@continue
+
+@@do_decrease_speed:
+    call    increase_pause
+    jmp     @@continue
+
+@@do_increase_speed:
+    call    decrease_pause
     jmp     @@continue
 
 @@continue:
@@ -127,6 +141,60 @@ do_pause proc
 endp
 
 
+
+pause_milliseconds: dw 30, 50, 80, 100, 150, 200, 300, 400, 500
+pause_milliseconds_end: dw ($ - pause_milliseconds - 2)
+current_pause_pointer dw pause_milliseconds
+
+
+make_default_speed proc
+    mov word ptr current_pause_pointer, offset pause_milliseconds + 4
+    ret
+endp
+
+
+increase_pause proc
+    push    ax bx
+
+    mov     bx, word ptr current_pause_pointer
+    mov     ax, [bx]
+    cmp     ax, 500
+    je      @@to_return
+
+    add     word ptr current_pause_pointer, 2
+
+@@to_return:
+    pop     bx ax
+    ret
+endp
+
+decrease_pause proc
+    push    ax
+
+    mov     ax, word ptr current_pause_pointer
+    cmp     ax, offset pause_milliseconds
+    je      @@to_return
+
+    sub     word ptr current_pause_pointer, 2
+
+@@to_return:
+    pop     ax
+    ret
+endp
+
+
+wait_pause proc
+    push    ax bx
+
+    mov     bx, word ptr current_pause_pointer
+    mov     ax, [bx]
+    call    wait_milliseconds
+
+    pop     bx ax
+    ret
+endp
+
+
 ;ax - level number (0, 1, 2)
 run_game_at_level proc
     push    ax bx cx dx
@@ -137,6 +205,8 @@ run_game_at_level proc
     call    spawn_snake
 
     call    spawn_apples
+
+    call    make_default_speed
 
 @@game_loop:
     call    process_keyboard
@@ -155,8 +225,7 @@ run_game_at_level proc
     call    spawn_objects_if_needed
     call    draw_map
 
-    mov     ax, 100
-    call    wait_milliseconds
+    call    wait_pause
 
     cmp     byte ptr game_is_over, 1
     jne     @@game_loop
