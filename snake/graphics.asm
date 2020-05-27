@@ -215,7 +215,7 @@ exit_graphics_mode endp
 
 
 ; bx = word offset, dh = y, dl = x
-graphics_print_line proc
+graphics_print_string proc
     push    ax bx cx dx
 
     push    bx
@@ -232,51 +232,15 @@ graphics_print_line proc
 endp
 
 
-; bl - color, dh - y, dl - x
-put_pixel proc
-    push    es di si ax dx bx cx
-
-    mov     ax, 0A000h
-    mov     es, ax
-
-    mov     cl, bl
-
-    push    dx
-    mov     ax, screen_width
-    xor     bx, bx
-    mov     bl, dh
-    mul     bx
-    pop     dx
-
-    xor     dh, dh
-    mov     bx, ax
-    add     bx, dx
-
-    mov     es:[bx], cl
-
-    pop     cx bx dx ax si di es
-
-    ret
-endp
-
-
 ; dx - y ax - x
-load_line_offset_to_bx proc
+load_line_offset_to_di proc
     push    ax dx
 
-    push    dx
-
-    mov     ax, screen_width
-    xor     dl, dl
-    shr     dx, 8
-    mul     dx
-
     mov     bx, ax
-
-    pop     dx
-
-    xor     dh, dh
-    add     bx, dx
+    mov     ax, screen_width
+    mul     dx
+    mov     di, ax
+    add     di, bx
 
     pop     dx ax
     ret
@@ -294,15 +258,13 @@ draw_sprite proc
 
     cld
 
-    call    load_line_offset_to_bx
-    mov     di, bx
+    call    load_line_offset_to_di
 
 @@lines_loop:
     ;copy line
     mov     cx, sprite_width
     rep     movsb
 
-    inc     dh
     add     di, (screen_width - sprite_width)
 
     inc     ax
@@ -318,23 +280,22 @@ endp
 draw_map proc
     push    ax cx bx dx si di
 
-    xor     dh, dh
-    xor     ax, ax
+    xor     dx, dx
 
 @@lines_loop:
-    xor     dl, dl
+    xor     ax, ax
 
 @@column_loop:
 
     ; draw object sprite here...
 
-    inc     dl
-    cmp     dl, map_width
+    inc     ax
+    cmp     ax, map_width
     jl      @@column_loop
 
-    add     ax,
-    inc     dh
-    cmp     dh, map_height
+
+    inc     dx
+    cmp     dx, map_height
     jl      @@lines_loop
 
     pop     di si dx bx cx ax

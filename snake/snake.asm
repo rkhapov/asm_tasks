@@ -44,61 +44,59 @@ main:
     je      @@loopa_end
 
     lea     si, brick_wall_sprite
-    mov     dh, 5
-    mov     dl, 10
+    mov     dx, 5
+    mov     ax, 10
     call    draw_sprite
 
     lea     si, spring_wall_sprite
-    mov     dh, 50
-    mov     dl, 100
+    mov     dx, 50
+    mov     ax, 100
     call    draw_sprite
 
     lea     si, apple_sprite
-    mov     dh, 100
-    mov     dl, 50
+    mov     dx, 100
+    mov     ax, 50
     call    draw_sprite
 
     lea     si, poisoned_apple_sprite
-    mov     dh, 80
-    mov     dl, 50
+    mov     dx, 80
+    mov     ax, 50
     call    draw_sprite
 
     lea     si, burger_sprite
-    mov     dh, 30
-    mov     dl, 50
+    mov     dx, 30
+    mov     ax, 50
     call    draw_sprite
 
     lea     si, portal_sprite
-    mov     dh, 100
-    mov     dl, 100
+    mov     dx, 100
+    mov     ax, 100
     call    draw_sprite
 
     lea     si, snake_part_sprite
-    mov     dh, 100
-    mov     dl, 0
+    mov     dx, 100
+    mov     ax, 0
     call    draw_sprite
 
     lea     si, snake_head_left_sprite
-    mov     dh, 90
-    mov     dl, 0
+    mov     dx, 90
+    mov     ax, 0
     call    draw_sprite
 
     lea     si, snake_head_up_sprite
-    mov     dh, 90
-    mov     dl, 10
+    mov     dx, 90
+    mov     ax, 10
     call    draw_sprite
 
     lea     si, snake_head_right_sprite
-    mov     dh, 90
-    mov     dl, 20
+    mov     dx, 90
+    mov     ax, 20
     call    draw_sprite
 
     lea     si, snake_head_down_sprite
-    mov     dh, 90
-    mov     dl, 30
+    mov     dx, 90
+    mov     ax, 30
     call    draw_sprite
-
-    call    clear_screen
 
 
     jmp     @@loopa
