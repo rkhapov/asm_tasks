@@ -179,6 +179,8 @@ do_selections_list proc
 
     xor     dx, dx
 
+    call    keyboard_clear_buffer
+
     call    strlen
     shr     ax, 1
     mov     di, ax

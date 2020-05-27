@@ -3,7 +3,7 @@ map_object_type_brick_wall      equ 1
 map_object_type_spring_wall     equ 2
 map_object_type_apple           equ 3
 map_object_type_poisoned_apple  equ 4
-map_object_type_burget          equ 5
+map_object_type_burger          equ 5
 map_object_type_portal          equ 6
 map_object_type_snake_left      equ 7
 map_object_type_snake_right     equ 8
@@ -19,34 +19,64 @@ map_object_t struc
 map_object_t ends
 
 
+map_object_life_time_apple equ 20
+
+
 map_width equ screen_width / 10
 map_height equ screen_height / 10
 map_size equ (map_width * map_height)
 
-map map_object_t map_size dup(<>)
+map map_object_t (map_size + 10) dup(<>)
 
 
-; dh - y, dl - x
-load_map_bx_index_by_dx proc
-    push    ax dx cx
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
 
-    push    dx
 
-    mov     ax, map_width * type(map_object_t)
-    xor     dl, dl
-    shr     dx, 8
-    mul     dx
+; dh - y
+load_y_index_to_bx proc
+    push    ax dx
+
+    xor     ax, ax
+    mov     al, dh
+    mov     bx, map_width * type(map_object_t)
+    mul     bx
 
     mov     bx, ax
 
-    pop     dx
-    xor     dh, dh
-    mov     cx, dx
-@@adding:
-    add     bx, type(map_object_t)
-    loop    @@adding
+    pop     dx ax
+    ret
+endp
 
-    pop     cx dx ax
+; dl - x
+load_x_index_to_bx proc
+    push    ax dx
+
+    xor     ax, ax
+    mov     al, dl
+    mov     bx, type(map_object_t)
+    mul     bx
+
+    mov     bx, ax
+
+    pop     dx ax
+    ret
+endp
+
+; dh - y, dl - x
+load_map_bx_index_by_dx proc
+    call    load_y_index_to_bx
+    mov     ax, bx
+    call    load_x_index_to_bx
+    add     ax, bx
+
+    mov     bx, ax
     ret
 endp
 
@@ -105,26 +135,26 @@ map1    db 'PBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBP'
         db 'PSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSP'
 
 
-map2    db 'PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'P                              P'
-        db 'PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP'
+map2    db 'BSSSSSSSSSSSSSSSSSSSBPPPPPPPPPPB'
+        db 'B                   B          B'
+        db 'B                   B          B'
+        db 'B                   B          B'
+        db 'B                   B          B'
+        db 'B                   B          B'
+        db 'B                   B          B'
+        db 'B    SSSS           B          B'
+        db 'B    SBBS           B          B'
+        db 'B    SSSS           BBBBBBBBBBBB'
+        db 'B                              B'
+        db 'B                              B'
+        db 'B                              B'
+        db 'B                              B'
+        db 'B                              B'
+        db 'B     BBBBBBBBBBBBBBBB         B'
+        db 'B                              B'
+        db 'B                              B'
+        db 'B                              B'
+        db 'BBBBBBBBBBBBBBBBBBBBBPPPPPPPPPPB'
 
 
 map3    db 'SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS'
@@ -212,5 +242,148 @@ initialize_map proc
     call    read_map
 
     pop     si bx
+    ret
+endp
+
+
+update_map proc
+    push    ax bx cx
+
+    mov     ax, map_size
+    lea     bx, map
+
+@@update_cycle:
+    mov     cl, [bx]._life_time
+
+    cmp     cl, map_object_life_time_enternity
+    je      @@continue
+
+    dec     cl
+    jnz     @@continue
+
+    mov     [bx]._type, map_object_type_none
+    mov     [bx]._life_time, map_object_life_time_enternity
+
+@@continue:
+    mov     [bx]._life_time, cl
+    add     bx, type(map_object_t)
+    dec     ax
+    jge     @@update_cycle
+
+    pop     cx bx ax
+    ret
+endp
+
+
+;dl - type dh - lifetime
+spawn_random proc
+    push    ax cx bx
+
+    push    dx
+
+@@while_not_empty:
+    call    generate_random_cords
+
+    mov     dl, ah
+    mov     dh, al
+    call    get_map_object_ref
+
+    cmp     [bx]._type, map_object_type_none
+    jne     @@while_not_empty
+
+    pop     dx
+
+    mov     [bx]._type, dl
+    mov     [bx]._life_time, dh
+
+    pop     bx cx ax
+    ret
+endp
+
+
+;al - object type
+;al = 1 if object of that type exists on map
+has_object_with_type proc
+    push    bx cx
+
+    mov     cx, map_size
+    lea     bx, map
+
+@@find:
+    cmp     [bx]._type, al
+    jne     @@continue
+
+    mov     al, 1
+    jmp     @@to_return
+
+@@continue:
+    add     bx, type(map_object_t)
+    dec     cx
+    jg      @@find
+
+    xor     al, al
+
+@@to_return:
+    pop     cx bx
+    ret
+endp
+
+
+spawn_apples proc
+    push    dx ax
+
+    xor     ah, ah
+    mov     al, byte ptr start_apple_count
+
+@@spawning:
+    mov     dl, map_object_type_apple
+    mov     dh, map_object_life_time_apple
+    call    spawn_random
+
+    dec     ax
+    jg      @@spawning
+
+    pop     ax dx
+    ret
+endp
+
+
+spawn_objects_if_needed proc
+    push    ax dx
+
+    mov     al, map_object_type_apple
+    call    has_object_with_type
+
+    test    al, al
+    jnz     @@apple_exists
+
+    mov     dl, map_object_type_apple
+    mov     dh, map_object_life_time_apple
+    call    spawn_random
+
+@@apple_exists:
+    mov     al, map_object_type_poisoned_apple
+    call    has_object_with_type
+
+    test    al, al
+    jnz     @@poisoned_apple_exists
+
+    mov     dl, map_object_type_poisoned_apple
+    mov     dh, map_object_life_time_apple
+    call    spawn_random
+
+@@poisoned_apple_exists:
+    mov     al, map_object_type_burger
+    call    has_object_with_type
+
+    test    al, al
+    jnz     @@burger_exists
+
+    mov     dl, map_object_type_burger
+    mov     dh, map_object_life_time_apple
+    call    spawn_random
+
+@@burger_exists:
+    pop     dx ax
     ret
 endp

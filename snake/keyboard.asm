@@ -1,5 +1,5 @@
 old_int9                    dw 0, 0
-keyboard_buffer             db 20 dup(0)
+keyboard_buffer             db 100 dup(0)
 keyboard_buffer_end:
 keyboard_buffer_head        dw offset keyboard_buffer
 keyboard_buffer_tail        dw offset keyboard_buffer

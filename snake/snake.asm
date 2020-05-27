@@ -45,18 +45,93 @@ exit proc
 exit endp
 
 
+;returns al = 1 - should exit, 2 - do pause
+process_keyboard proc
+@@process_events:
+    call    keyboard_pop_from_buffer
+    cmp     al, keyboard_no_scancode
+    je      @@process_events_exit
+
+    cmp     al, scancode_esc
+    je      @@return_exit
+
+    cmp     al, scancode_p
+    je      @@return_pause
+
+    jmp     @@process_events
+
+@@process_events_exit:
+    mov     al, 0
+    jmp     @@to_return
+
+@@return_pause:
+    mov     al, 2
+    jmp     @@to_return
+
+@@return_exit:
+    mov     al, 1
+
+@@to_return:
+    ret
+endp
+
+
+paused_str db 'Paused. Press P to continue$'
+
+
+do_pause proc
+    push    ax bx dx
+
+    mov     dh, 12
+    mov     dl, 7
+    lea     bx, paused_str
+    call    print_string
+
+    mov     ax, scancode_p
+    call    keyboard_wait_until
+
+    pop     dx bx ax
+    ret
+endp
+
+
+spawn_snake proc
+    ret
+endp
+
+
 ;ax - level number (0, 1, 2)
 run_game_at_level proc
     push    ax bx cx dx
 
     call    initialize_map
-    call    snake_queue_clear
 
+    call    spawn_snake
+    call    spawn_apples
+
+@@game_loop:
+
+    call    process_keyboard
+
+    cmp     al, 1
+    je      @@game_loop_exit
+
+    cmp     al, 2
+    jne     @@not_pause
+
+    call    do_pause
+
+@@not_pause:
+    call    update_map
+    call    spawn_objects_if_needed
     call    draw_map
 
-    mov     ax, scancode_esc
-    call    keyboard_wait_until
+    mov     ax, 100
+    call    wait_milliseconds
 
+    jmp     @@game_loop
+
+@@game_loop_exit:
     pop     dx cx bx ax
     ret
 endp
@@ -81,7 +156,7 @@ run_menu_cycle proc
 endp
 
 
-help_text   db 'snake - simple implementation of snake game', 10, 13
+help_text   db 'this is simple implementation of snake game', 10, 13
             db 'use keys:', 10, 13
             db '  -l <number> to specify start snake length (from 1 to 5) default = 3', 10, 13
             db '  -a <number> to specify start amounts of apple (from 1 to 5) default = 1', 10, 13
