@@ -58,7 +58,39 @@ process_keyboard proc
     cmp     al, scancode_p
     je      @@return_pause
 
+    cmp     al, scancode_up
+    je      @@do_up
+
+    cmp     al, scancode_down
+    je      @@do_down
+
+    cmp     al, scancode_left
+    je      @@do_left
+
+    cmp     al, scancode_right
+    je      @@do_right
+
+    jmp     @@continue
+
+@@do_up:
+    call    try_set_direction_to_up
+    jmp     @@continue
+
+@@do_down:
+    call    try_set_direction_to_down
+    jmp     @@continue
+
+@@do_right:
+    call    try_set_direction_to_right
+    jmp     @@continue
+
+@@do_left:
+    call    try_set_direction_to_left
+    jmp     @@continue
+
+@@continue:
     jmp     @@process_events
+
 
 @@process_events_exit:
     mov     al, 0
@@ -95,22 +127,18 @@ do_pause proc
 endp
 
 
-spawn_snake proc
-    ret
-endp
-
-
 ;ax - level number (0, 1, 2)
 run_game_at_level proc
     push    ax bx cx dx
 
     call    initialize_map
 
+    mov     al, byte ptr snake_start_length
     call    spawn_snake
+
     call    spawn_apples
 
 @@game_loop:
-
     call    process_keyboard
 
     cmp     al, 1
@@ -123,13 +151,15 @@ run_game_at_level proc
 
 @@not_pause:
     call    update_map
+    call    update_snake_position_to_current_direction
     call    spawn_objects_if_needed
     call    draw_map
 
     mov     ax, 100
     call    wait_milliseconds
 
-    jmp     @@game_loop
+    cmp     byte ptr game_is_over, 1
+    jne     @@game_loop
 
 @@game_loop_exit:
     pop     dx cx bx ax
