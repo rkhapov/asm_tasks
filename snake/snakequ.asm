@@ -91,8 +91,43 @@ game_is_over db 0
 
 
 on_collision proc
-    mov     al, 1
+    push    ax dx cx bx
+
+    mov     dh, byte ptr snake_head_y_pos
+    mov     dl, byte ptr snake_head_x_pos
+    call    get_map_object_ref
+
+    mov     al, [bx]._type
+
+    cmp     al, map_object_type_brick_wall
+    je      @@do_collision_with_brick_wall
+
+    cmp     al, map_object_type_spring_wall
+    je      @@do_collision_with_brick_wall
+
+    cmp     al, map_object_type_portal
+    je      @@do_collision_with_brick_wall
+
+    cmp     al, map_object_type_apple
+    je      @@do_collision_with_apple
+
+@@do_collision_with_brick_wall:
     mov     byte ptr game_is_over, 1
+    jmp     @@critical
+
+@@do_collision_with_apple:
+    inc     byte ptr snake_current_length
+    jmp     @@non_critical
+
+@@non_critical:
+    mov     al, 1
+    jmp     @@to_return
+
+@@critical:
+    xor     al, al
+
+@@to_return:
+    pop     bx cx dx ax
     ret
 endp
 
