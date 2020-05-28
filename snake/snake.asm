@@ -195,18 +195,82 @@ wait_pause proc
 endp
 
 
+apples_eaten            dw 0
+poisoned_apple_eqaten   dw 0
+life_time               dw 0
+
+
+clean_stats proc
+    mov     word ptr apples_eaten, 0
+    mov     word ptr poisoned_apple_eqaten, 0
+    mov     word ptr life_time, 0
+    ret
+endp
+
+
+show_end_stats proc
+    ret
+endp
+
+
+current_tick_str db 'Tick: 0000'
+place_for_current_tick db '$'
+
+emplace_current_tick proc
+    push    ax bx di dx cx
+
+    mov     ax, word ptr life_time
+    mov     dx, 4
+
+    lea     si, place_for_current_tick - 1
+
+@@inserting:
+
+    call    divide_and_get_right_digit
+    mov     byte ptr [si], cl
+
+    dec     si
+    dec     dx
+    jg      @@inserting
+
+
+    pop     cx dx di bx ax
+    ret
+endp
+
+
+print_current_tick proc
+    push     ax bx dx
+
+    call    emplace_current_tick
+    cmp     byte ptr snake_head_x_pos, 10
+    jl      @@do_left_cord
+
+    mov     dl, 15
+
+@@do_left_cord:
+    mov     dl, 0
+
+@@printing:
+    mov     dh, 10
+    lea     bx, current_tick_str
+    call    print_string
+
+    pop     dx bx ax
+    ret
+endp
+
+
 ;ax - level number (0, 1, 2)
 run_game_at_level proc
     push    ax bx cx dx
 
     call    initialize_map
-
     mov     al, byte ptr snake_start_length
     call    spawn_snake
-
     call    spawn_apples
-
     call    make_default_speed
+    call    clean_stats
 
 @@game_loop:
     call    process_keyboard
@@ -226,11 +290,13 @@ run_game_at_level proc
     call    draw_map
 
     call    wait_pause
-
+    inc     word ptr life_time
     cmp     byte ptr game_is_over, 1
     jne     @@game_loop
 
 @@game_loop_exit:
+    call    show_end_stats
+
     pop     dx cx bx ax
     ret
 endp
