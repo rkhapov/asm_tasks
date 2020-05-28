@@ -129,7 +129,7 @@ divide_and_get_right_digit proc
 
     xor     dx, dx
     mov     bx, 10
-    div     ax
+    div     bx
 
     add     dl, '0'
     mov     cl, dl

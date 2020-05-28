@@ -10,7 +10,7 @@ snake_max_length equ 50
 snake_head_x_pos db ?
 snake_head_y_pos db ?
 
-snake_current_length db ?
+snake_current_length db 0
 
 
 update_head_position proc
@@ -119,10 +119,14 @@ on_collision proc
     jmp     @@critical
 
 @@do_collision_with_apple:
+    call    music_push_apple_eaten_sound
+    inc     word ptr apples_eaten
     inc     byte ptr snake_current_length
     jmp     @@non_critical
 
 @@do_collision_with_poisoned_apple:
+    call    music_push_poisoned_apple_eaten_sound
+    inc     word ptr poisoned_apple_eaten
     cmp     byte ptr snake_current_length, 2
     jg      @@decrease_length
 

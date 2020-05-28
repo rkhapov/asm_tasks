@@ -92,6 +92,7 @@ play_sound endp
 
 
 music_init proc
+    call    music_clear
     ret
 music_init endp
 
@@ -143,6 +144,15 @@ music_is_queue_empty proc
 music_is_queue_empty endp
 
 
+music_play_head proc
+    push    ax cx
+    call    read_head_frequency_and_duration
+    call    play_sound
+    pop     cx ax
+    ret
+endp
+
+
 ; ax - elapsed
 music_update proc
     push    ax bx cx dx
@@ -151,32 +161,20 @@ music_update proc
 
     call    read_head_frequency_and_duration
 
-    cmp     cx, 0
-    jg      @@do_play_head
+    test    ax, ax
+    jz      @@to_return
 
-    cmp     word ptr sounds_queue_tail_index, 0
-    je      @@empty_queue
+    cmp     cx, bx
+    ja      @@decrease_life_time
 
     call    music_shift_queue_left
     sub     word ptr sounds_queue_tail_index, type(sound_queue_node_t)
-
-@@do_play_head:
-    call    read_head_frequency_and_duration
-    call    play_sound
-
-    test    ax, ax
-    jnz     @@decrease_life_time
 
     jmp     @@to_return
 
 @@decrease_life_time:
     sub     cx, bx
     call    upload_head_frequency_and_duration
-
-    jmp     @@to_return
-
-@@empty_queue:
-    call    do_stop_playing
 
 @@to_return:
     pop     dx cx bx ax
@@ -192,8 +190,8 @@ music_push_to_queue proc
 
     mov     bx, sounds_queue_tail_index
 
-    mov     sounds_queue[bx]._frequency, ax
-    mov     sounds_queue[bx]._sound_elapsed_time, cx
+    mov     [bx]._frequency, ax
+    mov     [bx]._sound_elapsed_time, cx
     add     word ptr sounds_queue_tail_index, type(sound_queue_node_t)
 
     pop     cx bx ax
@@ -203,26 +201,202 @@ music_push_to_queue endp
 
 
 music_shift_queue_left proc
-    push    ax bx cx
+    push    ax bx cx dx
 
-    xor     bx, bx
+    lea     bx, sounds_queue
+    xor     dx, dx
 
 @@shifting:
-    cmp     bx, sounds_queue_tail_index
+    cmp     dx, sounds_queue_size
     je      @@shifting_end
 
     add     bx, type(sound_queue_node_t)
-    mov     ax, sounds_queue[bx]._frequency
-    mov     cx, sounds_queue[bx]._sound_elapsed_time
+    mov     ax, [bx]._frequency
+    mov     cx, [bx]._sound_elapsed_time
 
     sub     bx, type(sound_queue_node_t)
-    mov     sounds_queue[bx]._frequency, ax
-    mov     sounds_queue[bx]._sound_elapsed_time, cx
+    mov     [bx]._frequency, ax
+    mov     [bx]._sound_elapsed_time, cx
 
     add     bx, type(sound_queue_node_t)
+    inc     dx
     jmp     @@shifting
 
 @@shifting_end:
-    pop     cx bx ax
+    pop     dx cx bx ax
     ret
 music_shift_queue_left endp
+
+
+music_clear proc
+    push    bx cx
+
+    call    do_stop_playing
+
+    mov     cx, sounds_queue_size
+    lea     bx, sounds_queue
+
+@@cleaning:
+    mov     [bx]._frequency, 0
+    mov     [bx]._sound_elapsed_time, 0
+
+    add     bx, type(sound_queue_node_t)
+
+    dec     cx
+    jne     @@cleaning
+
+    mov     word ptr sounds_queue_tail_index, offset sounds_queue
+
+    pop     cx bx
+    ret
+endp
+
+
+music_push MACRO note, duration
+    push    ax bx
+
+    mov     ax, note
+    mov     bx, duration
+    call    music_push_to_queue
+
+    pop     bx ax
+ENDM
+
+
+play2 MACRO p
+    mov     ax, p
+    call    do_play_frequency
+    call    pause2
+    call    do_stop_playing
+ENDM
+
+play4 MACRO p
+    mov     ax, p
+    call    do_play_frequency
+    call    pause4
+    call    do_stop_playing
+ENDM
+
+
+pause8 proc
+    push    ax
+    push    dx
+    push    cx
+
+    mov     cx, 1
+    xor     dx, dx
+    mov     ah, 86h
+    int     15h
+
+    pop     cx
+    pop     dx
+    pop     ax
+    ret
+pause8 endp
+
+pause4 proc
+    push    ax
+    push    dx
+    push    cx
+
+    mov     cx, 2
+    xor     dx, dx
+    mov     ah, 86h
+    int     15h
+
+    pop     cx
+    pop     dx
+    pop     ax
+    ret
+pause4 endp
+
+
+pause2 proc
+    push    ax
+    push    dx
+    push    cx
+
+    mov     cx, 4
+    xor     dx, dx
+    mov     ah, 86h
+    int     15h
+
+    pop     cx
+    pop     dx
+    pop     ax
+    ret
+pause2 endp
+
+
+pause1 proc
+    push    ax
+    push    dx
+    push    cx
+
+    mov     cx, 8
+    xor     dx, dx
+    mov     ah, 86h
+    int     15h
+
+    pop     cx
+    pop     dx
+    pop     ax
+    ret
+pause1 endp
+
+
+
+play8 MACRO p
+    mov     ax, p
+    call    do_play_frequency
+    call    pause8
+    call    do_stop_playing
+ENDM
+
+empty2 MACRO
+    call    do_stop_playing
+    call    pause2
+ENDM
+
+empty4 MACRO
+    call    do_stop_playing
+    call    pause4
+ENDM
+
+
+music_push_apple_eaten_sound proc
+
+    music_push  do2, 300
+    music_push  mi2, 300
+
+    ret
+endp
+
+music_push_poisoned_apple_eaten_sound proc
+
+    music_push  do2, 300
+    music_push  mi2_becar, 300
+
+    ret
+endp
+
+
+play_game_over proc
+
+    ;takt2
+    play4   do2
+    play4   do2
+    play2   mi2_becar
+
+    ;takt3
+    play4   re2
+    play4   re2
+    play4   do2
+    play4   do2
+
+    ;takt4
+    play2   si1
+    play2   do2
+
+    ret
+endp

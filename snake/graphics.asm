@@ -215,6 +215,13 @@ exit_graphics_mode proc
 exit_graphics_mode endp
 
 
+prints MACRO string_offset, y, x
+    lea     bx, string_offset
+    mov     dh, y
+    mov     dl, x
+    call    print_string
+ENDM
+
 ; bx = word offset, dh = y, dl = x
 print_string proc
     push    ax bx cx dx

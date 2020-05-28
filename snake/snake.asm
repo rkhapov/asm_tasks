@@ -122,27 +122,42 @@ process_keyboard proc
 endp
 
 
-paused_str db 'Paused. Press P to continue$'
+paused_str    db 'Paused. Press P to continue$'
+enter_to_help db 'Press Enter to see help$'
 
 
 do_pause proc
     push    ax bx dx
 
-    mov     dh, 12
-    mov     dl, 7
-    lea     bx, paused_str
-    call    print_string
+    prints paused_str 12 7
+    prints enter_to_help 14 9
 
-    mov     ax, scancode_p
-    call    keyboard_wait_until
+@@key_waiting:
+    call    keyboard_pop_from_buffer
 
+    cmp     al, scancode_p
+    je      @@to_return
+
+    cmp     al, scancode_enter
+    jne     @@continue
+
+    call    show_help
+    call    draw_map
+    prints paused_str 12 7
+    prints enter_to_help 14 9
+
+@@continue:
+    jmp     @@key_waiting
+
+@@to_return:
+    call    keyboard_clear_buffer
     pop     dx bx ax
     ret
 endp
 
 
-
-pause_milliseconds: dw 30, 50, 80, 100, 150, 200, 300, 400, 500
+pause_coeff         equ 10
+pause_milliseconds: dw 3, 5, 8, 10, 15, 20, 30, 40, 50
 pause_milliseconds_end: dw ($ - pause_milliseconds - 2)
 current_pause_pointer dw pause_milliseconds
 
@@ -158,7 +173,7 @@ increase_pause proc
 
     mov     bx, word ptr current_pause_pointer
     mov     ax, [bx]
-    cmp     ax, 500
+    cmp     ax, 50
     je      @@to_return
 
     add     word ptr current_pause_pointer, 2
@@ -184,81 +199,138 @@ endp
 
 
 wait_pause proc
-    push    ax bx
+    push    ax bx cx
 
     mov     bx, word ptr current_pause_pointer
-    mov     ax, [bx]
-    call    wait_milliseconds
+    mov     cx, [bx]
+    mov     ax, pause_coeff
 
-    pop     bx ax
+@@waiting:
+    call    music_play_head
+    call    wait_milliseconds
+    call    music_update
+
+    loop    @@waiting
+
+    pop     cx bx ax
     ret
 endp
 
 
 apples_eaten            dw 0
-poisoned_apple_eqaten   dw 0
+poisoned_apple_eaten    dw 0
 life_time               dw 0
 
 
 clean_stats proc
     mov     word ptr apples_eaten, 0
-    mov     word ptr poisoned_apple_eqaten, 0
+    mov     word ptr poisoned_apple_eaten, 0
     mov     word ptr life_time, 0
     ret
 endp
 
 
-show_end_stats proc
-    ret
-endp
+game_over_str               db 'Game Over!$'
+life_time_str               db 'Ticks of life:        00000'
+place_for_current_tick      db '$'
+apple_eaten_str             db 'Apple eaten:          00000'
+place_for_apple             db '$'
+poisoned_apple_eaten_str    db 'Poisoned apple eaten: 00000'
+place_for_poisoned_apple    db '$'
+press_enter_str             db 'Enter - back to menu$'
+length_str                  db 'Your length:          00000'
+length_place                db '$'
 
 
-current_tick_str db 'Tick: 0000'
-place_for_current_tick db '$'
+;ax - number
+;si - pointer
+emplace_number proc
+    push    cx dx
 
-emplace_current_tick proc
-    push    ax bx di dx cx
-
-    mov     ax, word ptr life_time
-    mov     dx, 4
-
-    lea     si, place_for_current_tick - 1
+    mov     dx, 5
 
 @@inserting:
-
     call    divide_and_get_right_digit
     mov     byte ptr [si], cl
 
     dec     si
     dec     dx
-    jg      @@inserting
+    jne     @@inserting
 
-
-    pop     cx dx di bx ax
+    pop     cx dx
     ret
 endp
 
 
-print_current_tick proc
-    push     ax bx dx
+emplace_apple_eaten proc
+    push    ax si
+    mov     ax, word ptr apples_eaten
+    lea     si, place_for_apple - 1
+    call    emplace_number
+    pop     si ax
+    ret
+endp
 
+emplace_current_tick proc
+    push    ax si
+    mov     ax, word ptr life_time
+    lea     si, place_for_current_tick - 1
+    call    emplace_number
+    pop     si ax
+    ret
+endp
+
+emplace_poisoned_apple_eaten proc
+    push    ax si
+    mov     ax, word ptr poisoned_apple_eaten
+    lea     si, place_for_poisoned_apple - 1
+    call    emplace_number
+    pop     si ax
+    ret
+endp
+
+emplace_length proc
+    push    ax si
+    mov     al, byte ptr snake_current_length
+    xor     ah, ah
+    lea     si, length_place - 1
+    call    emplace_number
+    pop     si ax
+    ret
+endp
+
+
+show_end_stats proc
+    push    ax bx dx
+
+    call    clear_screen
+
+    call    emplace_apple_eaten
     call    emplace_current_tick
-    cmp     byte ptr snake_head_x_pos, 10
-    jl      @@do_left_cord
+    call    emplace_poisoned_apple_eaten
+    call    emplace_length
 
-    mov     dl, 15
+    prints  game_over_str 5 16
+    prints  length_str 8 7
+    prints  apple_eaten_str 10 7
+    prints  poisoned_apple_eaten_str 12 7
+    prints  life_time_str 14 7
+    prints  press_enter_str 22 7
 
-@@do_left_cord:
-    mov     dl, 0
+    call    play_game_over
 
-@@printing:
-    mov     dh, 10
-    lea     bx, current_tick_str
-    call    print_string
+    mov     al, scancode_enter
+    call    keyboard_wait_until
+
+    call    keyboard_clear_buffer
 
     pop     dx bx ax
     ret
 endp
+
+
+max_string_x equ 30
+max_string_y equ 23
 
 
 ;ax - level number (0, 1, 2)
@@ -295,6 +367,7 @@ run_game_at_level proc
     jne     @@game_loop
 
 @@game_loop_exit:
+    call    music_clear
     call    show_end_stats
 
     pop     dx cx bx ax

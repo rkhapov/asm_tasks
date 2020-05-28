@@ -22,7 +22,7 @@ help_press_enter        db 'Press ENTER to continue$'
 
 
 show_help proc
-    push    bx dx
+    push    ax bx dx
 
     call    clear_screen
 
@@ -108,7 +108,7 @@ show_help proc
     mov     al, scancode_enter
     call    keyboard_wait_until
 
-    pop     dx bx
+    pop     dx bx ax
     ret
 endp
 
