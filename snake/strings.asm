@@ -120,3 +120,20 @@ to_int proc
 
     ret
 to_int endp
+
+
+;ax - number
+;cl - digit
+divide_and_get_right_digit proc
+    push    bx dx
+
+    xor     dx, dx
+    mov     bx, 10
+    div     ax
+
+    add     dl, '0'
+    mov     cl, dl
+
+    pop     dx bx
+    ret
+endp

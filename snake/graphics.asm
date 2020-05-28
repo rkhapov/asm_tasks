@@ -28,6 +28,7 @@ white         equ 15
 _gray equ light_gray
 
 
+backg equ (223)
 
 sprite_width equ screen_width / map_width
 sprite_height equ screen_height / map_height
@@ -43,132 +44,132 @@ brick_wall_sprite   db red,     red,    red,    white,  red,    red,    red,    
                     db red,     red,    red,    white,  red,    red,    red,    white,  red,    red
                     db red,     red,    red,    white,  red,    red,    red,    white,  red,    red
                     db white,   white,  white,  white,  white,  white,  white,  white,  white,  white
-                    db red,     red,    white,  red,    red,    red,    white,  red,    red,    red
+                    db red,     red,     red,    white,  red,    red,    red,    white,  red,    red
 
-empty_sprite    db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
-                db black, black, black, black, black, black, black, black, black, black
+empty_sprite    db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
 
-spring_wall_sprite  db _gray, _gray, _gray, _gray, black, black, _gray, _gray, _gray, _gray
-                    db black, _gray, _gray, black, black, black, black, _gray, _gray, black
-                    db _gray, black, black, _gray, black, black, _gray, black, black, _gray
-                    db black, _gray, _gray, black, black, black, black, _gray, _gray, black
-                    db _gray, black, black, _gray, black, black, _gray, black, black, _gray
-                    db black, _gray, _gray, black, black, black, black, _gray, _gray, black
-                    db _gray, black, black, _gray, black, black, _gray, black, black, _gray
-                    db black, _gray, _gray, black, black, black, black, _gray, _gray, black
-                    db _gray, black, black, _gray, black, black, _gray, black, black, _gray
-                    db _gray, _gray, _gray, _gray, black, black, _gray, _gray, _gray, _gray
+spring_wall_sprite  db _gray, _gray, _gray, _gray, backg, backg, _gray, _gray, _gray, _gray
+                    db backg, _gray, _gray, backg, backg, backg, backg, _gray, _gray, backg
+                    db _gray, backg, backg, _gray, backg, backg, _gray, backg, backg, _gray
+                    db backg, _gray, _gray, backg, backg, backg, backg, _gray, _gray, backg
+                    db _gray, backg, backg, _gray, backg, backg, _gray, backg, backg, _gray
+                    db backg, _gray, _gray, backg, backg, backg, backg, _gray, _gray, backg
+                    db _gray, backg, backg, _gray, backg, backg, _gray, backg, backg, _gray
+                    db backg, _gray, _gray, backg, backg, backg, backg, _gray, _gray, backg
+                    db _gray, backg, backg, _gray, backg, backg, _gray, backg, backg, _gray
+                    db _gray, _gray, _gray, _gray, backg, backg, _gray, _gray, _gray, _gray
 
-apple_sprite        db black, black, black, black, black, green, green, black, black, black
-                    db black, black, black, black, green, black, black, black, black, black
-                    db black, black, black, red, red, black, black, black, black, black
-                    db black, black, red, red, red, red, black, black, black, black
-                    db black, red, red, red, red, red, red, black, black, black
-                    db red, red, red, red, red, red, Red, red, black, black
-                    db red, red, red, red, red, red, red, red, black, black
-                    db black, red, red, red, red, red, red, black, black, black
-                    db black, black, red, red, red, red, black, black, black, black
-                    db black, black, black, red, red, black, black, black, black, black
+apple_sprite        db backg, backg, backg, backg, backg, green, green, backg, backg, backg
+                    db backg, backg, backg, backg, green, backg, backg, backg, backg, backg
+                    db backg, backg, backg, red, red, backg, backg, backg, backg, backg
+                    db backg, backg, red, red, red, red, backg, backg, backg, backg
+                    db backg, red, red, red, red, red, red, backg, backg, backg
+                    db red, red, red, red, red, red, Red, red, backg, backg
+                    db red, red, red, red, red, red, red, red, backg, backg
+                    db backg, red, red, red, red, red, red, backg, backg, backg
+                    db backg, backg, red, red, red, red, backg, backg, backg, backg
+                    db backg, backg, backg, red, red, backg, backg, backg, backg, backg
 
 
-poisoned_apple_sprite   db black, black, black, black, black, yellow, yellow, black, black, black
-                        db black, black, black, black, yellow, black, black, black, black, black
-                        db black, black, black, green, green, black, black, black, black, black
-                        db black, black, green, green, green, green, black, black, black, black
-                        db black, green, green, green, green, green, green, black, black, black
-                        db green, green, green, green, green, green, green, green, black, black
-                        db green, green, green, green, green, green, green, green, black, black
-                        db black, green, green, green, green, green, green, black, black, black
-                        db black, black, green, green, green, green, black, black, black, black
-                        db black, black, black, green, green, black, black, black, black, black
+poisoned_apple_sprite   db backg, backg, backg, backg, backg, yellow, yellow, backg, backg, backg
+                        db backg, backg, backg, backg, yellow, backg, backg, backg, backg, backg
+                        db backg, backg, backg, green, green, backg, backg, backg, backg, backg
+                        db backg, backg, green, green, green, green, backg, backg, backg, backg
+                        db backg, green, green, green, green, green, green, backg, backg, backg
+                        db green, green, green, green, green, green, green, green, backg, backg
+                        db green, green, green, green, green, green, green, green, backg, backg
+                        db backg, green, green, green, green, green, green, backg, backg, backg
+                        db backg, backg, green, green, green, green, backg, backg, backg, backg
+                        db backg, backg, backg, green, green, backg, backg, backg, backg, backg
 
-burger_sprite   db black, black, brown, brown, brown, brown, brown, brown, black, black
-                db black, brown, brown, brown, brown, brown, brown, brown, brown, black
+burger_sprite   db backg, backg, brown, brown, brown, brown, brown, brown, backg, backg
+                db backg, brown, brown, brown, brown, brown, brown, brown, brown, backg
                 db brown, brown, brown, brown, brown, brown, brown, brown, brown, brown
                 db yellow, yellow, yellow, yellow, yellow, yellow, yellow, yellow, yellow, yellow
                 db red, red, red, red, red, red, red, red, red, red
                 db red, red, red, red, red, red, red, red, red, red
                 db yellow, yellow, yellow, yellow, yellow, yellow, yellow, yellow, yellow, yellow
                 db brown, brown, brown, brown, brown, brown, brown, brown, brown, brown
-                db black, brown, brown, brown, brown, brown, brown, brown, brown, black
-                db black, black, brown, brown, brown, brown, brown, brown, black, black
+                db backg, brown, brown, brown, brown, brown, brown, brown, brown, backg
+                db backg, backg, brown, brown, brown, brown, brown, brown, backg, backg
 
 portal_sprite   db brown, brown, brown, brown, brown, brown, brown, brown, brown, brown
-                db brown, brown, brown, brown, black, brown, brown, brown, brown, brown
-                db brown, brown, brown, black, black, black, brown, brown, brown, brown
-                db brown, brown, black, black, black, black, black, brown, brown, brown
-                db brown, brown, black, black, black, black, black, brown, brown, brown
-                db brown, brown, black, black, black, black, black, brown, brown, brown
-                db brown, brown, black, black, black, black, black, brown, brown, brown
-                db brown, brown, brown, black, black, black, brown, brown, brown, brown
-                db brown, brown, brown, brown, black, brown, brown, brown, brown, brown
+                db brown, brown, brown, brown, backg, brown, brown, brown, brown, brown
+                db brown, brown, brown, backg, backg, backg, brown, brown, brown, brown
+                db brown, brown, backg, backg, backg, backg, backg, brown, brown, brown
+                db brown, brown, backg, backg, backg, backg, backg, brown, brown, brown
+                db brown, brown, backg, backg, backg, backg, backg, brown, brown, brown
+                db brown, brown, backg, backg, backg, backg, backg, brown, brown, brown
+                db brown, brown, brown, backg, backg, backg, brown, brown, brown, brown
+                db brown, brown, brown, brown, backg, brown, brown, brown, brown, brown
                 db brown, brown, brown, brown, brown, brown, brown, brown, brown, brown
 
-snake_part_sprite   db black, black, black, black, black, black, black, black, black, black
-                    db black, black, green, green, green, green, green, green, black, black
-                    db black, green, yellow, green, yellow, green, green, yellow, green, black
-                    db black, green, green, green, green, yellow, green, green, green, black
-                    db black, green, green, yellow, green, green, green, yellow, green, black
-                    db black, green, green, green, green, green, green, green, green, black
-                    db black, green, yellow, green, green, yellow, green, green, yellow, black
-                    db black, green, green, green, green, green, green, green, green, black
-                    db black, black, green, green, green, green, green, green, black, black
-                    db black, black, black, black, black, black, black, black, black, black
+snake_part_sprite   db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                    db backg, backg, green, green, green, green, green, green, backg, backg
+                    db backg, green, yellow, green, yellow, green, green, yellow, green, backg
+                    db backg, green, green, green, green, yellow, green, green, green, backg
+                    db backg, green, green, yellow, green, green, green, yellow, green, backg
+                    db backg, green, green, green, green, green, green, green, green, backg
+                    db backg, green, yellow, green, green, yellow, green, green, yellow, backg
+                    db backg, green, green, green, green, green, green, green, green, backg
+                    db backg, backg, green, green, green, green, green, green, backg, backg
+                    db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
 
 
-snake_head_up_sprite    db black, black, black, green, black, green, black, black, black, black
-                        db black, black, black, green, black, green, black, black, black, black
-                        db black, black, green, green, black, green, green, black, black, black
-                        db black, black, green, green, green, green, green, green, black, black
-                        db black, green, green, green, green, green, green, green, green, black
-                        db black, green, yellow, green, green, green, green, green, green, black
-                        db black, green, yellow, green, green, green, green, green, green, black
-                        db black, black, green, green, green, green, green, green, black, black
-                        db black, black, green, green, green, green, green, green, black, black
-                        db black, black, black, green, green,green, green, black, black, black
+snake_head_up_sprite    db backg, backg, backg, green, backg, green, backg, backg, backg, backg
+                        db backg, backg, backg, green, backg, green, backg, backg, backg, backg
+                        db backg, backg, green, green, backg, green, green, backg, backg, backg
+                        db backg, backg, green, green, green, green, green, green, backg, backg
+                        db backg, green, green, green, green, green, green, green, green, backg
+                        db backg, green, yellow, green, green, green, green, green, green, backg
+                        db backg, green, yellow, green, green, green, green, green, green, backg
+                        db backg, backg, green, green, green, green, green, green, backg, backg
+                        db backg, backg, green, green, green, green, green, green, backg, backg
+                        db backg, backg, backg, green, green,green, green, backg, backg, backg
 
 
-snake_head_right_sprite db black, black, black, black, black, black, black, black, black, black
-                        db black, black, black, green, green, green, black, black, black, black
-                        db black, green, green, yellow, yellow, green, green, green, black, black
+snake_head_right_sprite db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                        db backg, backg, backg, green, green, green, backg, backg, backg, backg
+                        db backg, green, green, yellow, yellow, green, green, green, backg, backg
                         db green, green, green, green, green, green, green, green, green, green
-                        db green, green, green, green, green, green, green, black, black, black
+                        db green, green, green, green, green, green, green, backg, backg, backg
                         db green, green, green, green, green, green, green, green, green, green
-                        db green, green, green, green, green, green, green, green, black, black
-                        db black, green, green, green, green, green, green, black, black, black
-                        db black, black, black, green, green, green, black, black, black, black
-                        db black, black, black, black, black, black, black, black, black, black
+                        db green, green, green, green, green, green, green, green, backg, backg
+                        db backg, green, green, green, green, green, green, backg, backg, backg
+                        db backg, backg, backg, green, green, green, backg, backg, backg, backg
+                        db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
 
-snake_head_down_sprite  db black, black, black, green, green, green, green, black, black, black
-                        db black, black, green, green, green, green, green, green, black, black
-                        db black, black, green, green, green, green, green, green, black, black
-                        db black, green, green, green, green, green, green, yellow, green, black
-                        db black, green, green, green, green, green, green, yellow, green, black
-                        db black, green, green, green, green, green, green, green, green, black
-                        db black, black, green, green, green, green, green, green, black, black
-                        db black, black, black, green, green, black, green, green, black, black
-                        db black, black, black, black, green, black, green, black, black, black
-                        db black, black, black, black, green, black, green, black, black, black
+snake_head_down_sprite  db backg, backg, backg, green, green, green, green, backg, backg, backg
+                        db backg, backg, green, green, green, green, green, green, backg, backg
+                        db backg, backg, green, green, green, green, green, green, backg, backg
+                        db backg, green, green, green, green, green, green, yellow, green, backg
+                        db backg, green, green, green, green, green, green, yellow, green, backg
+                        db backg, green, green, green, green, green, green, green, green, backg
+                        db backg, backg, green, green, green, green, green, green, backg, backg
+                        db backg, backg, backg, green, green, backg, green, green, backg, backg
+                        db backg, backg, backg, backg, green, backg, green, backg, backg, backg
+                        db backg, backg, backg, backg, green, backg, green, backg, backg, backg
 
 
-snake_head_left_sprite  db black, black, black, black, black, black, black, black, black, black
-                        db black, black, black, black, green, green, green, black, black, black
-                        db black, black, green, green, green, yellow, yellow, green, green, black
+snake_head_left_sprite  db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
+                        db backg, backg, backg, backg, green, green, green, backg, backg, backg
+                        db backg, backg, green, green, green, yellow, yellow, green, green, backg
                         db green, green, green, green, green, green, green, green, green, green
-                        db black, black, black, green, green, green, green, green, green, green
+                        db backg, backg, backg, green, green, green, green, green, green, green
                         db green, green, green, green, green, green, green, green, green, green
-                        db black, black, green, green, green, green, green, green, green, green
-                        db black, black, black, green, green, green, green, green, green, black
-                        db black, black, black, black, green, green, green, black, black, black
-                        db black, black, black, black, black, black, black, black, black, black
+                        db backg, backg, green, green, green, green, green, green, green, green
+                        db backg, backg, backg, green, green, green, green, green, green, backg
+                        db backg, backg, backg, backg, green, green, green, backg, backg, backg
+                        db backg, backg, backg, backg, backg, backg, backg, backg, backg, backg
 
 
 
