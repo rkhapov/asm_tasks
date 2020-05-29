@@ -108,10 +108,10 @@ sound_queue_node_t struc
 sound_queue_node_t ends
 
 
-sounds_queue_size equ 10
+sounds_queue_size equ 300
 
-sounds_queue sound_queue_node_t (sounds_queue_size+1) dup(<>)
-sounds_queue_tail_index dw 0
+sounds_queue sound_queue_node_t (sounds_queue_size+10) dup(<>)
+sounds_queue_tail_index dw sounds_queue
 
 
 read_head_frequency_and_duration proc
@@ -197,7 +197,6 @@ music_push_to_queue proc
     pop     cx bx ax
     ret
 music_push_to_queue endp
-
 
 
 music_shift_queue_left proc
@@ -366,16 +365,16 @@ ENDM
 
 music_push_apple_eaten_sound proc
 
-    music_push  do2, 300
-    music_push  mi2, 300
+    music_push  do2, 200
+    music_push  mi2, 200
 
     ret
 endp
 
 music_push_poisoned_apple_eaten_sound proc
 
-    music_push  do2, 300
-    music_push  mi2_becar, 300
+    music_push  do2, 200
+    music_push  mi2_becar, 200
 
     ret
 endp

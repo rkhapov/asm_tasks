@@ -42,20 +42,92 @@ print_al proc
 print_al endp
 
 
+milliseconds_per_tick equ 50
+
+;ax - milliseconds
+;returns ax - ticks amount
+milliseconds_to_ticks_amount proc
+    push    bx dx
+
+    xor     dx, dx
+    mov     bx, milliseconds_per_tick
+    div     bx
+
+    pop     dx bx
+    ret
+endp
+
+
+print_ax proc
+    push    ax bx cx dx
+
+    mov     dx, 4
+
+@@lll:
+    call    divide_and_get_right_digit
+    push    ax dx
+
+    mov     ah, 2
+    mov     dl, cl
+    int     21h
+
+    pop     dx ax
+
+    dec     dx
+    jne     @@lll
+
+    mov     ah, 2
+    mov     dl, 10
+    int     21h
+
+    mov     ah, 2
+    mov     dl, 13
+    int     21h
+
+    pop     dx cx bx ax
+    ret
+endp
+
+
+print_1 proc
+    push    ax dx
+
+    mov     ah, 2
+    mov     dl, '1'
+    int     21h
+
+    mov     ah, 2
+    mov     dl, 10
+    int     21h
+
+    mov     ah, 2
+    mov     dl, 13
+    int     21h
+
+    pop     dx ax
+    ret
+endp
+
+
 ;ax - milliseconds amount
 wait_milliseconds proc
-    push    ax dx cx
+    push    ax dx cx es
 
-    mov     cx, 1000
-    mul     cx
+    call    milliseconds_to_ticks_amount
 
-    mov     cx, dx
-    mov     dx, ax
+    xor     cx, cx
+    mov     es, cx
 
-    mov     ah, 86h
-    int     15h
+    mov     cx, word ptr es:[046Ch]
+    add     cx, ax
 
-    pop     cx dx ax
+@@waiting:
+    hlt
+
+    cmp     cx, word ptr es:[046Ch]
+    jne     @@waiting
+
+    pop     es cx dx ax
     ret
 endp
 

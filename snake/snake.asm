@@ -156,8 +156,8 @@ do_pause proc
 endp
 
 
-pause_coeff         equ 10
-pause_milliseconds: dw 3, 5, 8, 10, 15, 20, 30, 40, 50
+pause_coeff         equ 50
+pause_milliseconds: dw 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 pause_milliseconds_end: dw ($ - pause_milliseconds - 2)
 current_pause_pointer dw pause_milliseconds
 
@@ -173,7 +173,7 @@ increase_pause proc
 
     mov     bx, word ptr current_pause_pointer
     mov     ax, [bx]
-    cmp     ax, 50
+    cmp     ax, 10
     je      @@to_return
 
     add     word ptr current_pause_pointer, 2
@@ -207,6 +207,7 @@ wait_pause proc
 
 @@waiting:
     call    music_play_head
+    mov     ax, pause_coeff
     call    wait_milliseconds
     call    music_update
 
