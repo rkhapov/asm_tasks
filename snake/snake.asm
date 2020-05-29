@@ -44,9 +44,12 @@ exit proc
     ret
 exit endp
 
+direction_already_setted db 0
 
 ;returns al = 1 - should exit, 2 - do pause
 process_keyboard proc
+    mov     byte ptr direction_already_setted, 0
+
 @@process_events:
     call    keyboard_pop_from_buffer
     cmp     al, keyboard_no_scancode
@@ -79,19 +82,31 @@ process_keyboard proc
     jmp     @@continue
 
 @@do_up:
+    cmp     byte ptr direction_already_setted, 1
+    je      @@continue
     call    try_set_direction_to_up
+    mov     byte ptr direction_already_setted, al
     jmp     @@continue
 
 @@do_down:
+    cmp     byte ptr direction_already_setted, 1
+    je      @@continue
     call    try_set_direction_to_down
+    mov     byte ptr direction_already_setted, al
     jmp     @@continue
 
 @@do_right:
+    cmp     byte ptr direction_already_setted, 1
+    je      @@continue
     call    try_set_direction_to_right
+    mov     byte ptr direction_already_setted, al
     jmp     @@continue
 
 @@do_left:
+    cmp     byte ptr direction_already_setted, 1
+    je      @@continue
     call    try_set_direction_to_left
+    mov     byte ptr direction_already_setted, al
     jmp     @@continue
 
 @@do_decrease_speed:

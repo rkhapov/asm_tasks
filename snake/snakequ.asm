@@ -90,6 +90,47 @@ endp
 game_is_over db 0
 
 
+compute_cut_intersection_mode proc
+    push    ax bx cx dx di
+
+    mov     dh, byte ptr snake_head_y_pos
+    mov     dl, byte ptr snake_head_x_pos
+    call    get_map_object_ref
+
+    mov     cl, [bx]._life_time
+    mov     al, byte ptr snake_current_length
+    sub     al, cl
+    inc     al
+    mov     byte ptr snake_current_length, al
+
+    lea     bx, map
+    mov     dx, map_size
+
+@@map_traversee:
+    cmp     byte ptr [bx]._type, map_object_type_snake_body
+    jne     @@continue
+
+    cmp     byte ptr [bx]._life_time, cl
+    jl      @@delete_part
+
+    sub     byte ptr [bx]._life_time, cl
+
+    jmp     @@continue
+
+@@delete_part:
+    mov     byte ptr [bx]._life_time, map_object_life_time_enternity
+    mov     byte ptr [bx]._type, map_object_type_none
+
+@@continue:
+    add     bx, type(map_object_t)
+    dec     dx
+    jne     @@map_traversee
+
+    pop     di dx cx bx ax
+    ret
+endp
+
+
 ;al - is critical
 calculate_self_intersection proc
     cmp     byte ptr intersection_mode, intersection_mode_death
@@ -97,6 +138,9 @@ calculate_self_intersection proc
 
     cmp     byte ptr intersection_mode, intersection_mode_nothing
     je      @@non_critical
+
+    call    compute_cut_intersection_mode
+    jmp     @@non_critical
 
 @@critical:
     mov     byte ptr game_is_over, 1
@@ -250,32 +294,52 @@ endp
 
 
 try_set_direction_to_up proc
-    push    ax bx cx dx
+    cmp     byte ptr snake_current_direction, snake_direction_down
+    je      @@not_setted
     mov     byte ptr snake_current_direction, snake_direction_up
-    pop     dx cx bx ax
+    mov     al, 1
+    jmp     @@to_return
+@@not_setted:
+    xor     al, al
+@@to_return:
     ret
 endp
 
 
 try_set_direction_to_down proc
-    push    ax bx cx dx
+    cmp     byte ptr snake_current_direction, snake_direction_up
+    je      @@not_setted
     mov     byte ptr snake_current_direction, snake_direction_down
-    pop     dx cx bx ax
+    mov     al, 1
+    jmp     @@to_return
+@@not_setted:
+    xor     al, al
+@@to_return:
     ret
 endp
 
 
 try_set_direction_to_left proc
-    push    ax bx cx dx
+    cmp     byte ptr snake_current_direction, snake_direction_right
+    je      @@not_setted
     mov     byte ptr snake_current_direction, snake_direction_left
-    pop     dx cx bx ax
+    mov     al, 1
+    jmp     @@to_return
+@@not_setted:
+    xor     al, al
+@@to_return:
     ret
 endp
 
 
 try_set_direction_to_right proc
-    push    ax bx cx dx
+    cmp     byte ptr snake_current_direction, snake_direction_left
+    je      @@not_setted
     mov     byte ptr snake_current_direction, snake_direction_right
-    pop     dx cx bx ax
+    mov     al, 1
+    jmp     @@to_return
+@@not_setted:
+    xor     al, al
+@@to_return:
     ret
 endp
