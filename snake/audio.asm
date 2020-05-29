@@ -380,6 +380,29 @@ music_push_poisoned_apple_eaten_sound proc
 endp
 
 
+music_push_portal_sound proc
+
+    music_push  sol1, 100
+    music_push  mi1, 100
+    music_push  mi2, 100
+    music_push  sol2, 100
+
+    ret
+endp
+
+
+music_push_spring_sound proc
+
+    music_push  sol1, 80
+    music_push  mi1, 80
+    music_push  do1, 80
+    music_push  mi1, 80
+    music_push  sol1, 80
+
+    ret
+endp
+
+
 play_game_over proc
 
     ;takt2
@@ -397,5 +420,21 @@ play_game_over proc
     play2   si1
     play2   do2
 
+    ret
+endp
+
+play_menu_selection_sound proc
+    play4   la1
+    ret
+endp
+
+play_menu_enter_sound proc
+    play8   mi1
+    play8   mi2
+    ret
+endp
+
+play_pause_menu proc
+    play4   do3
     ret
 endp

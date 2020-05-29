@@ -108,6 +108,8 @@ show_help proc
     mov     al, scancode_enter
     call    keyboard_wait_until
 
+    call    play_menu_enter_sound
+
     pop     dx bx ax
     ret
 endp
@@ -212,18 +214,21 @@ do_selections_list proc
     jmp     @@continue_selection_cycle
 
 @@up_selection:
+    call    play_menu_selection_sound
     cmp     dx, 0
     je      @@continue_selection_cycle
     dec     dx
     jmp     @@continue_selection_cycle
 
 @@down_selection:
+    call    play_menu_selection_sound
     cmp     dx, di
     je      @@continue_selection_cycle
     inc     dx
     jmp     @@continue_selection_cycle
 
 @@enter_selection:
+    call    play_menu_enter_sound
     mov     ax, dx
     jmp     @@to_return
 

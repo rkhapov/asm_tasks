@@ -144,6 +144,8 @@ enter_to_help db 'Press Enter to see help$'
 do_pause proc
     push    ax bx dx
 
+    call    play_pause_menu
+
     prints paused_str 12 7
     prints enter_to_help 14 9
 
@@ -156,6 +158,7 @@ do_pause proc
     cmp     al, scancode_enter
     jne     @@continue
 
+    call    play_menu_enter_sound
     call    show_help
     call    draw_map
     prints paused_str 12 7
@@ -165,6 +168,7 @@ do_pause proc
     jmp     @@key_waiting
 
 @@to_return:
+    call    play_pause_menu
     call    keyboard_clear_buffer
     pop     dx bx ax
     ret
@@ -339,6 +343,8 @@ show_end_stats proc
     call    keyboard_wait_until
 
     call    keyboard_clear_buffer
+
+    call    play_menu_enter_sound
 
     pop     dx bx ax
     ret

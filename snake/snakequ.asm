@@ -358,6 +358,7 @@ on_collision proc
     jmp     @@non_critical
 
 @@do_collistion_with_portal:
+    call    music_push_portal_sound
     call    compute_portal_collision
     jmp     @@non_critical
 
