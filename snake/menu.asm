@@ -1,7 +1,10 @@
 menu_run_level1     equ 0
 menu_run_level2     equ 1
 menu_run_level3     equ 2
-menu_exit           equ 3
+menu_run_level4     equ 3
+menu_run_level5     equ 4
+menu_run_level6     equ 5
+menu_exit           equ 6
 
 
 help_title              db 'Snake game about$'
@@ -250,11 +253,14 @@ menu_exit_str    db ' Exit$'
 
 main_menu_selections dw menu_start_str, menu_help_str, menu_exit_str, 0
 
-level1_str  db ' Level 1$'
-level2_str  db ' Level 2$'
-level3_str  db ' Level 3$'
+level1_str  db ' Only bricks$'
+level2_str  db ' Only springs$'
+level3_str  db ' Only portals$'
+level4_str  db ' Easy$'
+level5_str  db ' Medium$'
+level6_str  db ' Hard$'
 
-level_selections dw level1_str, level2_str, level3_str, 0
+level_selections dw level1_str, level2_str, level3_str, level4_str, level5_str, level6_str, 0
 
 ;returns menu_* result at ax
 run_menu proc

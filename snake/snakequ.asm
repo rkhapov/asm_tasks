@@ -303,6 +303,131 @@ compute_portal_collision proc
 endp
 
 
+make_direction_opposite proc
+    cmp     byte ptr snake_current_direction, snake_direction_down
+    je      @@make_up
+
+    cmp     byte ptr snake_current_direction, snake_direction_up
+    je      @@make_down
+
+    cmp     byte ptr snake_current_direction, snake_direction_left
+    je      @@make_right
+
+    mov     byte ptr snake_current_direction, snake_direction_left
+    jmp     @@to_return
+
+@@make_up:
+    mov     byte ptr snake_current_direction, snake_direction_up
+    jmp     @@to_return
+
+@@make_down:
+    mov     byte ptr snake_current_direction, snake_direction_down
+    jmp     @@to_return
+
+@@make_right:
+    mov     byte ptr snake_current_direction, snake_direction_right
+
+@@to_return:
+    ret
+endp
+
+;al - number returns al - success flag
+emplace_tail proc
+    push    bx cx dx
+
+    lea     bx, map
+    xor     dh, dh
+
+@@lines_cycle:
+    xor     dl, dl
+
+@@columns_cycle:
+    cmp     byte ptr [bx]._type, map_object_type_snake_body
+    jne     @@continue
+
+    cmp     byte ptr [bx]._life_time, al
+    jne     @@continue
+
+    call    make_direction_opposite
+    mov     byte ptr snake_head_y_pos, dh
+    mov     byte ptr snake_head_x_pos, dl
+    call    spawn_snake_head
+
+    mov     al, 1
+    jmp     @@break
+
+@@continue:
+    add     bx, type(map_object_t)
+    inc     dl
+    cmp     dl, map_width
+    jb      @@columns_cycle
+
+    inc     dh
+    cmp     dh, map_height
+    jb      @@lines_cycle
+
+    xor     al, al
+
+@@break:
+    pop     dx cx bx
+    ret
+endp
+
+move_head_to_tail_cord proc
+    push    ax
+
+    mov     ax, 0101h
+
+@@cycle:
+    mov     al, ah
+    call    emplace_tail
+    test    al, al
+    jnz     @@break
+
+    inc     ah
+    jmp     @@cycle
+
+@@break:
+    pop     ax
+    ret
+endp
+
+
+inverse_life_times proc
+    push    bx ax dx cx
+
+    mov     dx, map_size
+    lea     bx, map
+
+    mov     al, byte ptr snake_current_length
+
+@@traverse:
+    cmp     byte ptr [bx]._type, map_object_type_snake_body
+    jne     @@continue
+    
+    mov     cl, byte ptr [bx]._life_time
+    neg     cl
+    add     cl, al
+    inc     cl
+    mov     byte ptr [bx]._life_time, cl
+
+@@continue:
+    add     bx, type(map_object_t)
+    dec     dx
+    jne     @@traverse
+
+    pop     cx dx ax bx
+    ret
+endp
+
+
+compute_spring_wall_collision proc
+    call    move_head_to_tail_cord
+    call    inverse_life_times
+    ret
+endp
+
+
 on_collision proc
     push    dx cx bx
 
@@ -316,7 +441,7 @@ on_collision proc
     je      @@do_collision_with_brick_wall
 
     cmp     al, map_object_type_spring_wall
-    je      @@do_collision_with_brick_wall
+    je      @@do_collision_with_spring_wall
 
     cmp     al, map_object_type_apple
     je      @@do_collision_with_apple
@@ -340,6 +465,11 @@ on_collision proc
     call    music_push_apple_eaten_sound
     inc     word ptr apples_eaten
     inc     byte ptr snake_current_length
+    jmp     @@non_critical
+
+@@do_collision_with_spring_wall:
+    call    music_push_spring_sound
+    call    compute_spring_wall_collision
     jmp     @@non_critical
 
 @@do_collision_with_poisoned_apple:
@@ -403,6 +533,17 @@ update_snake_position_to_current_direction proc
     jz      @@to_return
 
 @@no_collision:
+    call    spawn_snake_head
+
+@@to_return:
+    pop     dx cx bx ax
+    ret
+endp
+
+
+spawn_snake_head proc
+    push    ax bx dx
+
     cmp     byte ptr snake_current_direction, snake_direction_down
     je      @@setup_down_head
 
@@ -439,11 +580,10 @@ update_snake_position_to_current_direction proc
     mov     al, byte ptr snake_current_length
     mov     [bx]._life_time, al
 
-@@to_return:
-    pop     dx cx bx ax
+    pop     dx bx ax
+
     ret
 endp
-
 
 
 try_set_direction_to_up proc

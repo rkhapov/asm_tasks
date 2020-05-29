@@ -119,12 +119,19 @@ wait_milliseconds proc
     mov     es, cx
 
     mov     cx, word ptr es:[046Ch]
-    add     cx, ax
 
 @@waiting:
     hlt
 
-    cmp     cx, word ptr es:[046Ch]
+    mov     dx, word ptr es:[046Ch]
+    sub     dx, cx
+    cmp     dx, 0
+    jnl     @@not_neg
+
+    neg     dx
+
+@@not_neg:
+    cmp     dx, ax
     jne     @@waiting
 
     pop     es cx dx ax
@@ -180,4 +187,12 @@ abort proc
     mov     al, scancode_esc
     call    keyboard_wait_until
     int     20h
+endp
+
+not_implemented_str db 'Not implemented!', 10, 13, '$'
+
+abort_not_implemented proc
+    lea     bx, not_implemented_str
+    call    abort
+    ret
 endp

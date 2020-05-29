@@ -393,11 +393,11 @@ endp
 
 music_push_spring_sound proc
 
-    music_push  sol1, 80
-    music_push  mi1, 80
-    music_push  do1, 80
-    music_push  mi1, 80
-    music_push  sol1, 80
+    music_push  sol1, 50
+    music_push  mi1, 50
+    music_push  do1, 50
+    music_push  mi1, 50
+    music_push  sol1, 50
 
     ret
 endp

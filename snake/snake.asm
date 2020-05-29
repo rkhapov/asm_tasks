@@ -418,13 +418,13 @@ endp
 
 help_text   db 'this is simple implementation of snake game', 10, 13
             db 'use keys:', 10, 13
-            db '  -l <number> to specify start snake length (from 1 to 5) default = 3', 10, 13
+            db '  -l <number> to specify start snake length (from 2 to 5) default = 3', 10, 13
             db '  -a <number> to specify start amounts of apple (from 1 to 5) default = 1', 10, 13
             db '  -i <mode> to specify self intersection behaviour (d - death, c - cut, n - nothing) default = d', 10, 13
             db '  -h to see this help and exit', 10, 13
             db 'for ingame controls see help item at main menu', 10, 13, '$'
 
-invalid_length_msg db 'Invalid snake length: must be from 1 to 5!', 10, 13, '$'
+invalid_length_msg db 'Invalid snake length: must be from 2 to 5!', 10, 13, '$'
 
 invalid_intersection_mode_msg db 'Invalid sel intersection mode: accepltable is d, c, n!', 10, 13, '$'
 
@@ -472,8 +472,8 @@ main proc
     mov     si, ax
     call    to_int
     
-    cmp     al, 0
-    je      @@invalid_length
+    cmp     al, 1
+    jbe     @@invalid_length
 
     cmp     al, 5
     ja      @@invalid_length
