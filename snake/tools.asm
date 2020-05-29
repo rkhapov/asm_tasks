@@ -170,3 +170,14 @@ generate_random_cords proc
     pop     dx cx bx
     ret
 endp
+
+
+;bx - offset of msg
+abort proc
+    call    clear_screen
+    mov     ah, 9
+    int     21h
+    mov     al, scancode_esc
+    call    keyboard_wait_until
+    int     20h
+endp

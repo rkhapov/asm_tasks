@@ -387,3 +387,23 @@ spawn_objects_if_needed proc
     pop     dx ax
     ret
 endp
+
+;dh - y, dl - x
+;al = is in bound
+inbound proc
+    cmp     dh, map_height
+    jae     @@no
+
+    cmp     dl, map_width
+    jae     @@no
+
+    mov     al, 1
+
+    jmp     @@to_return
+
+@@no:
+    xor     al, al
+
+@@to_return:
+    ret
+endp

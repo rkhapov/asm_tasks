@@ -155,6 +155,154 @@ calculate_self_intersection proc
 endp
 
 
+
+;dh - y, dl x
+;ah - dy, al - dx
+;returns valid coordinates in dx, if portal was found
+try_find_portal proc
+    push    ax bx cx
+
+    mov     cx, ax
+
+    ;one more step to not get neighbour
+    add     dh, ch
+    add     dl, cl
+
+@@finding:
+    add     dh, ch
+    add     dl, cl
+
+    call    inbound
+    test    al, al
+    jz      @@finding_end
+
+    call    get_map_object_ref
+    cmp     byte ptr [bx]._type, map_object_type_portal
+    je      @@finding_end
+
+    jmp     @@finding
+
+@@finding_end:
+
+    pop     cx bx ax
+    ret
+endp
+
+
+;ah - dy, al - dx
+;returns al - success flag
+try_move_to_portal proc
+    push    dx bx
+
+    mov     bx, ax
+
+    mov     dh, byte ptr snake_head_y_pos
+    mov     dl, byte ptr snake_head_x_pos
+    call    try_find_portal
+
+    call    inbound
+    test    al, al
+    jz      @@not_found
+
+    sub     dl, bl
+    sub     dh, bh
+    mov     byte ptr snake_head_y_pos, dh
+    mov     byte ptr snake_head_x_pos, dl
+    mov     al, 1
+    jmp     @@to_return
+
+@@not_found:
+    xor     al, al
+
+@@to_return:
+    pop     bx dx
+    ret
+endp
+
+;al - success flag
+try_move_to_left_portal proc
+    mov     ah, 0
+    mov     al, -1
+    call    try_move_to_portal
+    ret
+endp
+
+;al - success flag
+try_move_to_right_portal proc
+    mov     ah, 0
+    mov     al, 1
+    call    try_move_to_portal
+    ret
+endp
+
+;al - success flag
+try_move_to_up_portal proc
+    mov     ah, -1
+    mov     al, 0
+    call    try_move_to_portal
+    ret
+endp
+
+;al - success flag
+try_move_to_down_portal proc
+    mov     ah, 1
+    mov     al, 0
+    call    try_move_to_portal
+    ret
+endp
+
+
+portal_not_found_msg db 'Portal not found', 10, 13, '$'
+
+compute_portal_collision proc
+    push    ax
+
+    cmp     byte ptr snake_current_direction, snake_direction_up
+    je      @@find_in_down
+
+    cmp     byte ptr snake_current_direction, snake_direction_left
+    je      @@find_in_right
+
+    cmp     byte ptr snake_current_direction, snake_direction_down
+    je      @@find_in_up
+
+    ;only one option - find in left
+
+@@find_in_left:
+    call    try_move_to_left_portal
+    test    al, al
+    jnz     @@to_return
+    jmp     @@not_found
+
+@@find_in_right:
+    call    try_move_to_right_portal
+    test    al, al
+    jnz     @@to_return
+    jmp     @@not_found
+
+@@find_in_up:
+    call    try_move_to_up_portal
+    test    al, al
+    jnz     @@to_return
+    jmp     @@not_found
+
+@@find_in_down:
+    call    try_move_to_down_portal
+    test    al, al
+    jnz     @@to_return
+    jmp     @@not_found
+
+@@not_found:
+    ;bx is not saved, because in this case we will never return
+    lea     bx, portal_not_found_msg
+    call    abort
+
+@@to_return:
+    pop     ax
+    ret
+endp
+
+
 on_collision proc
     push    dx cx bx
 
@@ -170,9 +318,6 @@ on_collision proc
     cmp     al, map_object_type_spring_wall
     je      @@do_collision_with_brick_wall
 
-    cmp     al, map_object_type_portal
-    je      @@do_collision_with_brick_wall
-
     cmp     al, map_object_type_apple
     je      @@do_collision_with_apple
 
@@ -181,6 +326,9 @@ on_collision proc
 
     cmp     al, map_object_type_snake_body
     je      @@do_collision_with_own_body
+
+    cmp     al, map_object_type_portal
+    je      @@do_collistion_with_portal
 
     jmp     @@do_collision_with_brick_wall
 
@@ -207,6 +355,10 @@ on_collision proc
     call    calculate_self_intersection
     test    al, al
     jnz     @@critical
+    jmp     @@non_critical
+
+@@do_collistion_with_portal:
+    call    compute_portal_collision
     jmp     @@non_critical
 
 @@decrease_length:
