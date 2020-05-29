@@ -157,7 +157,7 @@ endp
 
 
 pause_coeff         equ 50
-pause_milliseconds: dw 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+pause_milliseconds: dw 2, 3, 4, 5, 6, 7, 8, 9, 10
 pause_milliseconds_end: dw ($ - pause_milliseconds - 2)
 current_pause_pointer dw pause_milliseconds
 

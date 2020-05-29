@@ -90,6 +90,27 @@ endp
 game_is_over db 0
 
 
+;al - is critical
+calculate_self_intersection proc
+    cmp     byte ptr intersection_mode, intersection_mode_death
+    je      @@critical
+
+    cmp     byte ptr intersection_mode, intersection_mode_nothing
+    je      @@non_critical
+
+@@critical:
+    mov     byte ptr game_is_over, 1
+    mov     al, 1
+    jmp     @@to_return
+
+@@non_critical:
+    xor     al, al
+
+@@to_return:
+    ret
+endp
+
+
 on_collision proc
     push    dx cx bx
 
@@ -114,6 +135,11 @@ on_collision proc
     cmp     al, map_object_type_poisoned_apple
     je      @@do_collision_with_poisoned_apple
 
+    cmp     al, map_object_type_snake_body
+    je      @@do_collision_with_own_body
+
+    jmp     @@do_collision_with_brick_wall
+
 @@do_collision_with_brick_wall:
     mov     byte ptr game_is_over, 1
     jmp     @@critical
@@ -132,6 +158,12 @@ on_collision proc
 
     mov     byte ptr game_is_over, 1
     jmp     @@critical
+
+@@do_collision_with_own_body:
+    call    calculate_self_intersection
+    test    al, al
+    jnz     @@critical
+    jmp     @@non_critical
 
 @@decrease_length:
     dec     byte ptr snake_current_length
